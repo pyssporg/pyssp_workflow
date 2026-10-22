@@ -7,6 +7,8 @@ The library treats verification as a sequence of path-addressed work units
 
 ```text
 authoring ──> build ──> params ──> simulate ──> compare ──> evidence
+                                      │                        │
+                                      └──────────> report <────┘
 ```
 
 Each step is a plain, importable function. `pyssp_vv.nodes` wraps the ones that
@@ -32,11 +34,19 @@ before the comparison runs. Until a case carries all three, measurement
 comparison returns a discrepancy record rather than a verdict. See
 [future direction](docs/breakdown/00-intent/intent.md#future-direction-validation).
 
+**Diagnosis** is part of the loop, not an afterthought. `report` exposes
+trajectories and the criteria they were judged against as data, so they can be
+inspected in a notebook during development, and renders the same view as a
+figure. Figures are derived artifacts: regenerable from the evidence or run
+manifests, and never an acceptance criterion.
+
 ## Status
 
-Pre-alpha (`0.0.1`). Only the contracts are implemented: assessment/evidence
-schemas, verdict states, the oracle protocol, and one node. Everything else is a
-named empty module whose contract is documented but not yet built.
+Pre-alpha (`0.0.1`). Implemented: assessment/evidence schemas, verdict states,
+the oracle protocol, and one node. Documented but not built: every other module,
+including the reporting contract. Report is designed first-class (see
+[DD-001](docs/breakdown/03-implementation/decisions/DD-001-derived-plots.md)) but has no
+renderer until run artifacts exist.
 
 ## Install
 

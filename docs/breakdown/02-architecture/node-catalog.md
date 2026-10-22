@@ -25,6 +25,8 @@ Every node obeys:
 | `compare_reference` | compare | run manifest, reference CSV, tolerance, `out_dir` | metrics CSV, comparison manifest | later |
 | `compare_measurement` | compare | run manifest, measurement path, channel map, `out_dir` | discrepancy report | design blocked: intended-use contract (see open questions) |
 | `evaluate_oracle` | oracle | candidate run dir, oracle ref, `out_dir` | verdict record path | later |
+| `plot_runs` | report | run manifests, signal list, tolerance, `out_dir` | figure paths, plot manifest | later |
+| `plot_bundle` | report | bundle path, `out_dir` | figure paths, plot manifest | later |
 | `write_bundle` | evidence | `EvidenceBundle`, `out_dir` | `evidence.json` path | **implemented** |
 
 ## Composites
@@ -39,7 +41,6 @@ body. Futures are passed as direct arguments when they form a dependency edge.
 
 ## Deliberately absent
 
-- `plot` — plotting is a reporting adapter, not a verification step.
 - `fix_model`, `relax_tolerance`, `auto_accept` — no node writes to an input
   path, so there is nothing for these to do; a failing oracle yields a failing
   or invalid verdict.

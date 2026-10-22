@@ -100,6 +100,34 @@ The oracle protocol itself does not change: `measurement` is a provenance and
 the assessment already carries the tolerance. What is missing is the
 intended-use field and the measured-data contract.
 
+## Reporting and diagnosis
+
+Plotting is how a failing verdict becomes an explanation, so `report` is a
+first-class stage. It has two entry points because it is used at two different
+moments:
+
+| Use | Input | Output |
+| --- | --- | --- |
+| Development | run directory or bundle, chosen signals | in-memory series and tables; a figure only if asked |
+| Report | bundle path, `out_dir` | figures plus a plot manifest |
+
+Rules:
+
+- **Data first.** The data layer returns series and tables without importing
+  matplotlib. Rendering is a separate adapter behind the `report` extra, so the
+  development path works in a notebook with no figure backend.
+- **Draw the criterion.** A comparison figure shows the tolerance band or
+  acceptance criterion on the same axes as the data. A plot that shows only two
+  curves leaves the reader to guess what was judged.
+- **Derived, not evidence.** Figures are regenerable and are never hashed into a
+  bundle: matplotlib output is not byte-stable across versions, fonts, or
+  backends. The plot manifest records input digests so a figure can be traced to
+  the bundle it came from.
+- **One node, one output directory.** A reporting node owns `<out_dir>/plots/`
+  and writes its manifest there.
+
+See [DD-001](../03-implementation/decisions/DD-001-derived-plots.md).
+
 ## Packaging
 
 | Extra | Provides |

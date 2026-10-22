@@ -27,6 +27,9 @@ Verification is implemented. Validation is the direction of travel; see
 
 - **Evidence is the deliverable.** A run that produces numbers but no bundle has
   not produced a result.
+- **Diagnosis is part of the loop.** A failing comparison is explained by a view
+  of the data and the criterion it missed, not by prose. Figures are derived
+  from runs and evidence and are regenerable at any time.
 - **Comparisons are controlled or invalid.** A verdict is attributable to the
   declared factor, or it is reported as `invalid`. It is never silently reported
   as a failure.
@@ -46,8 +49,9 @@ Verification is implemented. Validation is the direction of travel; see
 
 - **Not an engine and not an integrator.** Simulation semantics belong to the
   engines behind `pyssp_simulate`.
-- **Not a plotting product.** Plots are diagnostic output, not acceptance
-  criteria.
+- **Not a charting library.** Figures are derived views over runs and evidence;
+  the library does not aim to replace a plotting tool, and a figure is never an
+  acceptance criterion.
 - **Not a workflow engine.** Scheduling belongs to `sequence_extensions`; this
   library only declares nodes and inert plans.
 - **Not a certifier.** A bundle supports a decision about a model; it does not
