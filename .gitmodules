@@ -1,0 +1,27 @@
+# Declared, not linked. These sections exist so the intended dependency set is
+# reviewable; no gitlink has been added yet, so a clone fetches nothing.
+#
+# Linking a dependency:
+#   git submodule add -b main <url> 3rd_party/<name>
+# This reuses the section below; do not rewrite it.
+#
+# See product-breakdown/05-operation/submodules.md.
+
+[submodule "3rd_party/pyssp_standard"]
+	path = 3rd_party/pyssp_standard
+	url = https://github.com/pyssporg/pyssp_standard.git
+
+[submodule "3rd_party/pyssp_simulate"]
+	path = 3rd_party/pyssp_simulate
+	url = https://github.com/pyssporg/pyssp_simulate.git
+	branch = main
+
+[submodule "3rd_party/pyssp_sysml2"]
+	path = 3rd_party/pyssp_sysml2
+	url = https://github.com/pyssporg/pyssp_sysml2.git
+	branch = main
+
+[submodule "3rd_party/sequence_extensions"]
+	path = 3rd_party/sequence_extensions
+	url = https://github.com/jkCXf9X4/sequence_extensions.git
+	branch = main

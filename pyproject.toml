@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyssp-vv"
+version = "0.0.1"
+description = "Node-ready verification-by-simulation workflows for SSP models, SysML-derived SSPs, and measured data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "pyssporg contributors" }]
+keywords = ["ssp", "fmi", "simulation", "verification", "workflow"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+# The core (spec, evidence, plan) is standard-library only. Nothing here.
+dependencies = []
+
+[project.optional-dependencies]
+# Placeholders until the pyssp submodules are linked under 3rd_party/.
+build = []
+simulate = []
+flow = ["sequence-extensions-flow>=3"]
+analysis = ["numpy", "pandas"]
+report = ["matplotlib"]
+all = [
+  "sequence-extensions-flow>=3",
+  "numpy",
+  "pandas",
+  "matplotlib",
+]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyssp_vv"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+xfail_strict = true
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]

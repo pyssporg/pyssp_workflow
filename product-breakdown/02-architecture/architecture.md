@@ -1,0 +1,104 @@
+# Architecture
+
+## Shape
+
+```text
+        spec/          assessments, verdicts, tolerances, dispositions   (stdlib)
+        evidence/      bundles, digests, environment fingerprint         (stdlib)
+        plan/          inert execution plans                             (stdlib)
+           |
+           v
+        params/ build/ execute/ compare/ oracle/ report/                 (extras)
+           |
+           v
+        nodes/                                                        (flow extra)
+           |
+           v
+        sequence_extensions flows (not part of this package)
+```
+
+`authoring/` is a sibling branch, not a stage of the verification path. It is
+invoked as a subprocess and exchanges only SysML and SSD artifacts.
+
+## Layers and allowed imports
+
+| Layer | May import | Must not import |
+| --- | --- | --- |
+| `spec`, `evidence`, `plan` | stdlib, `pyssp_vv` | anything third-party |
+| `oracle`, `compare`, `execute` | stdlib, `pyssp_vv.spec`, `.evidence`, `.compare` | `authoring`, `nodes` |
+| `params`, `build` | stdlib, `pyssp_vv`, adapter for `pyssp_standard` | `authoring`, `nodes` |
+| `authoring` | stdlib, subprocess to `pyssp` CLI | `oracle`, `compare`, `evidence` |
+| `nodes` | `sequence_extensions`, `pyssp_vv` domain functions | — |
+
+These rules are enforced by `tests/test_layering.py`. They are the machine-
+checkable form of two commitments: the core is installable everywhere, and the
+verifier cannot reach into the author.
+
+## Verbs and nouns
+
+Nodes are verbs; evidence is the noun. A node schedules work and returns paths.
+It does not return trajectories, engine handles, frames, or figures. This is
+what keeps node arguments picklable (process pools), bundles small, and
+plotting out of the core.
+
+## Verdicts
+
+| Verdict | Meaning |
+| --- | --- |
+| `pass` | The oracle's expectation was met within tolerance |
+| `fail` | The expectation was not met |
+| `invalid` | The comparison was not legal: held factors differ, inputs missing, artifacts not comparable |
+| `blocked` | No evidence could be produced: engine unavailable, timeout, crash |
+| `waived` | A known outcome accepted by a recorded disposition |
+
+`invalid` is load-bearing. Without it, an uncontrolled comparison looks like an
+engine defect, and the first response is to loosen a tolerance.
+
+## Execution model
+
+- One node owns exactly one output path, derived from the assessment id.
+- Outputs are written to a temporary location and renamed into place.
+- Engine execution happens in a child process. A Python thread cannot be
+  preempted, so a timed-out node is abandoned, not stopped; and a native engine
+  abort would otherwise take the calling process with it.
+- Retries are permitted only for nodes that are deterministic and atomic.
+- Each node returns the absolute paths it wrote; manifests store paths relative
+  to themselves.
+
+## Oracle independence
+
+Every oracle declares its provenance:
+
+| Provenance | Claim |
+| --- | --- |
+| `agreement` | Two implementations behave alike; says nothing about correctness |
+| `reference` | Matches a trusted trajectory |
+| `analytic` | Matches a closed-form expectation |
+| `invariant` | A property holds (bounds, conservation, monotonicity) |
+| `metamorphic` | A known transformation of the input produces the expected transformation of the output |
+| `measurement` | Matches measured data within a pre-registered criterion |
+
+An oracle may read the built artifact and its own reference data. It may not
+read authoring intermediates, and it may not modify inputs.
+
+## Packaging
+
+| Extra | Provides |
+| --- | --- |
+| — | `spec`, `evidence`, `plan`, oracle protocol |
+| `build` | `pyssp_standard`-backed SSP assembly (placeholder until submodules are linked) |
+| `simulate` | `pyssp_simulate`-backed execution (placeholder) |
+| `flow` | `pyssp_vv.nodes` (Python 3.11+, `sequence-extensions-flow`) |
+| `analysis` | trajectory comparison (numpy/pandas) |
+| `report` | plotting adapter (matplotlib) |
+
+## Open questions
+
+1. **Measurement verdicts.** Does `compare_measurement` require a pre-registered
+   criterion to return `pass`/`fail`, or may it return a discrepancy record with
+   no verdict? Decision needed before its signature is fixed.
+2. **Verdict composition.** When an assessment declares several oracles, is the
+   bundle-level outcome all-must-pass, a scored aggregate, or a per-oracle
+   report with no aggregate? Field reserved; policy not decided.
+3. **Disposition storage.** Per-project data file versus per-assessment file.
+   Both are explicit paths; the choice affects how waivers are reviewed.
