@@ -3,14 +3,14 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pyssp-vv"
-version = "0.0.1"
-description = "Node-ready verification-by-simulation workflows for SSP models, SysML-derived SSPs, and measured data."
+name = "pyssp-workflow"
+version = "0.1.0"
+description = "Composable build, run, compare, and verify workflows for SSP models."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "pyssporg contributors" }]
-keywords = ["ssp", "fmi", "simulation", "verification", "workflow"]
+keywords = ["ssp", "fmi", "simulation", "workflow", "verification"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
@@ -21,29 +21,24 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
 ]
-# The core (spec, evidence, plan) is standard-library only. Nothing here.
+# Measurement, judgment, and evidence come from pyssp_vv. During development it
+# is installed from the sibling checkout (see requirements-dev.txt); it is not
+# yet on PyPI, so it is not declared here and `pip install -e .` stays offline.
 dependencies = []
 
 [project.optional-dependencies]
+flow = ["sequence-extensions-flow>=3"]
 # Placeholders until the pyssp submodules are linked under 3rd_party/.
 build = []
 simulate = []
-flow = ["sequence-extensions-flow>=3"]
-analysis = ["numpy", "pandas"]
-report = ["matplotlib"]
-all = [
-  "sequence-extensions-flow>=3",
-  "numpy",
-  "pandas",
-  "matplotlib",
-]
+all = ["sequence-extensions-flow>=3"]
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pyssp_vv"]
+packages = ["src/pyssp_workflow"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src", "tests"]
+pythonpath = ["src"]
 testpaths = ["tests"]
 xfail_strict = true
 addopts = "-q"

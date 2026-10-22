@@ -1,35 +1,25 @@
-"""Import-graph rules that keep the core independent.
-
-These are architecture constraints, not style preferences. If one of these
-fails, fix the code rather than the test.
-"""
+"""Import-graph rules that keep this package a composition layer."""
 
 from __future__ import annotations
 
 import ast
-import sys
 from pathlib import Path
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "pyssp_vv"
+SRC = Path(__file__).resolve().parents[1] / "src" / "pyssp_workflow"
 
-#: Layers whose imports must resolve to the standard library or pyssp_vv.
-STDLIB_ONLY = ("spec", "evidence", "plan")
-
-#: The only layer allowed to import a flow engine.
 FLOW_LAYER = "nodes"
+JUDGE_ALLOWED = ("nodes", "cli")
+AUTHORING_MUST_NOT_IMPORT = ("pyssp_vv",)
 
-#: Layers that must never be able to reach the model authoring tool.
-NO_AUTHORING = ("spec", "evidence", "plan", "oracle", "compare", "execute")
-
-#: Only the node layer may depend on the node layer's contents from outside.
-LEAF_LAYER = "nodes"
+#: Symbols that would mean a capability was reimplemented here.
+CAPABILITY_MARKERS = ("def compare(", "def judge(", "def passed(", "passed(")
 
 
 def _module_name(path: Path) -> str:
     parts = list(path.relative_to(SRC).with_suffix("").parts)
     if parts and parts[-1] == "__init__":
         parts.pop()
-    return ".".join(["pyssp_vv", *parts]) if parts else "pyssp_vv"
+    return ".".join(["pyssp_workflow", *parts]) if parts else "pyssp_workflow"
 
 
 def _layer(module: str) -> str:
@@ -53,19 +43,6 @@ def _walk():
         yield path, _module_name(path), _imports(path)
 
 
-def test_stdlib_only_layers_have_no_third_party_imports():
-    allowed = set(sys.stdlib_module_names) | {"__future__"}
-    violations = []
-    for _path, module, imports in _walk():
-        if _layer(module) not in STDLIB_ONLY:
-            continue
-        for name in imports:
-            top = name.split(".")[0]
-            if top != "pyssp_vv" and top not in allowed:
-                violations.append(f"{module} imports {name}")
-    assert not violations, "stdlib-only layer leaked a dependency:\n" + "\n".join(violations)
-
-
 def test_flow_engine_is_confined_to_the_node_layer():
     violations = [
         f"{module} imports {name}"
@@ -73,27 +50,45 @@ def test_flow_engine_is_confined_to_the_node_layer():
         for name in imports
         if name.split(".")[0] == "sequence_extensions" and _layer(module) != FLOW_LAYER
     ]
-    assert not violations, "flow engine leaked outside pyssp_vv.nodes:\n" + "\n".join(violations)
-
-
-def test_verification_layers_cannot_import_authoring():
-    violations = [
-        f"{module} imports {name}"
-        for _path, module, imports in _walk()
-        for name in imports
-        if _layer(module) in NO_AUTHORING and name.startswith("pyssp_vv.authoring")
-    ]
     assert not violations, (
-        "verification code reached into the authoring tool; the verifier must not "
-        "be able to see how the model was produced:\n" + "\n".join(violations)
+        "flow engine leaked outside pyssp_workflow.nodes:\n" + "\n".join(violations)
     )
 
 
-def test_node_layer_is_a_leaf():
+def test_authoring_cannot_reach_the_judgment_layer():
     violations = [
         f"{module} imports {name}"
         for _path, module, imports in _walk()
+        if _layer(module) == "authoring"
         for name in imports
-        if _layer(module) != LEAF_LAYER and name.startswith("pyssp_vv.nodes")
+        if name.startswith(AUTHORING_MUST_NOT_IMPORT)
     ]
-    assert not violations, "a non-node module depends on the node layer:\n" + "\n".join(violations)
+    assert not violations, (
+        "the authoring path can reach the V&V layer that evaluates its output:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_judgment_is_only_reachable_from_the_composition_layer():
+    violations = [
+        f"{module} imports {name}"
+        for _path, module, imports in _walk()
+        if _layer(module) not in JUDGE_ALLOWED
+        for name in imports
+        if name.startswith("pyssp_vv.judge")
+    ]
+    assert not violations, (
+        "an execution-side module decides acceptability:\n" + "\n".join(violations)
+    )
+
+
+def test_no_capability_is_reimplemented_here():
+    violations = []
+    for path in sorted(SRC.rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        for marker in CAPABILITY_MARKERS:
+            if marker in text:
+                violations.append(f"{path.relative_to(SRC)} contains {marker!r}")
+    assert not violations, (
+        "measurement or judgment leaked into the workflow layer:\n" + "\n".join(violations)
+    )

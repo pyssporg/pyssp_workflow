@@ -1,0 +1,9 @@
+# Development layout: `pyssp_workflow` and `pyssp_vv` are sibling checkouts
+# under ssp_references/3rd_party/. Install both:
+#
+#   pip install -r requirements-dev.txt
+#
+# Then install this package itself:
+#
+#   pip install -e ".[dev]"
+-e ../pyssp_vv

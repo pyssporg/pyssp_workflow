@@ -1,29 +1,17 @@
 # Product Breakdown
 
-The durable record of what `pyssp_vv` is, why it is shaped this way, and what
-each contract promises. Code is allowed to change; these documents are the
-things a change must justify.
-
-## Layers
+The durable record of what `pyssp_workflow` is and what it refuses to be.
 
 | Folder | Holds |
 | --- | --- |
-| `00-intent/` | Purpose, commitments, non-goals |
-| `02-architecture/` | System shape, import rules, node catalog, ADRs |
-| `03-implementation/` | Interchange schemas and design decisions |
-| `05-operation/` | How to run and maintain the library |
-| `06-evolution/` | Forward-looking decisions and direction of travel |
+| `00-intent/` | Purpose, scope, non-goals |
+| `02-architecture/` | Layer boundaries, dependency rules, node catalog |
+| `03-implementation/` | Workflow-level design decisions |
+| `05-operation/` | Submodules and local development |
 
 ## Naming
 
-- `ADR-<NNN>.md` — architecture decision, bare number, title inside the file
+- `ADR-<NNN>.md` — architecture decision
 - `DD-<NNN>-<slug>.md` — implementation decision
-- `ED-<NNN>-<slug>.md` — evolution decision: a direction of travel before code exists
-- Schemas are named after the artifact they describe (`assessment`, `evidence`)
 
-## Reading order
-
-[intent](00-intent/intent.md) → [architecture](02-architecture/architecture.md)
-→ [node catalog](02-architecture/node-catalog.md) →
-[assessment](03-implementation/schema/assessment.md) /
-[evidence](03-implementation/schema/evidence.md) schemas.
+The capability itself is documented in the `pyssp_vv` repository.

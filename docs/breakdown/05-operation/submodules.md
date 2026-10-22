@@ -1,32 +1,34 @@
 # Submodules
 
-The pyssp libraries are intended dependencies, but they are **declared and not
-linked**. `.gitmodules` lists the sections so the dependency set is reviewable;
-no gitlink exists, so a clone fetches nothing and `git submodule status` is
-empty.
+Both packages are declared as submodules and **not linked** in this repository's
+working tree until development on them stabilises. `.gitmodules` lists the
+intended dependency set; no gitlink exists for the unlinked entries.
 
 | Path | Upstream | Used by |
 | --- | --- | --- |
-| `3rd_party/pyssp_standard` | `pyssporg/pyssp_standard` | `build`, evidence digests of SSP XML |
+| `3rd_party/pyssp_standard` | `pyssporg/pyssp_standard` | `build`, `params` |
 | `3rd_party/pyssp_simulate` | `pyssporg/pyssp_simulate` | `execute` |
-| `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (via its CLI) |
+| `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
+| `3rd_party/pyssp_vv` | `pyssporg/pyssp_vv` | `measure`, `judge`, `evidence` |
 | `3rd_party/sequence_extensions` | `jkCXf9X4/sequence_extensions` | `nodes` |
+
+## Development layout
+
+`pyssp_workflow` and `pyssp_vv` are sibling checkouts. Install the capability
+first:
+
+```bash
+pip install -r requirements-dev.txt   # -e ../pyssp_vv
+pip install -e ".[dev]"
+```
 
 ## Linking one
 
 ```bash
-git submodule add -b main https://github.com/pyssporg/pyssp_simulate.git \
-  3rd_party/pyssp_simulate
+git submodule add -b main https://github.com/pyssporg/pyssp_vv.git \
+  3rd_party/pyssp_vv
 ```
 
-This reuses the existing `.gitmodules` section. Do not rewrite it.
-
-## After linking
-
-- Fill in the matching extra in `pyproject.toml` (`build`, `simulate`).
-- Keep each upstream behind exactly one adapter module. No upstream type may
-  appear in a public signature.
-- Review the submodule's local diff before updating it, and run this library's
-  tests plus the submodule's tests before recording the new gitlink.
-- `authoring` keeps invoking `pyssp_sysml2` through the `pyssp` CLI, even when
-  the submodule is present.
+This reuses the existing `.gitmodules` section; do not rewrite it. Review the
+submodule's local diff before updating it, and run both repositories' tests
+before recording a new gitlink.

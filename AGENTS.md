@@ -2,37 +2,31 @@
 
 ## Rules
 
-1. **Don't assume. Surface tradeoffs.** If a contract is ambiguous, stop and
-   say so rather than picking a behaviour silently.
-2. **Minimum code that solves the problem.** Nothing speculative. Empty
-   modules with a contract docstring are preferred over guessed implementations.
+1. **Don't assume. Surface tradeoffs.**
+2. **Minimum code that solves the problem.** Nothing speculative.
 3. **Touch only what you must.** Clean up only your own mess.
-4. **Define success criteria and verify.** A change is done when the stated
-   check passes, not when it looks right.
+4. **Define success criteria and verify.**
 
 ## Hard constraints
 
-- **Core is standard-library only.** `pyssp_vv/spec`, `pyssp_vv/evidence`, and
-  `pyssp_vv/plan` may import stdlib and `pyssp_vv` only.
-- **No flow engine outside `pyssp_vv/nodes`.** `sequence_extensions` may be
+- **This package owns composition, not capability.** No metric, criterion,
+  verdict, SSP parsing, or engine call is implemented here. If it belongs to a
+  capability, it belongs to the package that owns that capability.
+- **No flow engine outside `pyssp_workflow.nodes`.** `sequence_extensions` may be
   imported there and nowhere else.
-- **Oracles never import authoring.** `pyssp_vv.oracle`, `pyssp_vv.compare`,
-  and `pyssp_vv.evidence` must not import `pyssp_vv.authoring`. Verification
-  must not be able to reach into the thing that produced the model.
+- **`authoring` must not import `pyssp_vv`.** The path that produces a model must
+  not reach the judgment that evaluates it.
+- **Only `nodes` and `cli` may import `pyssp_vv.judge`.** Build, execute, and
+  plan are execution-side and must not decide acceptability.
 - **Explicit paths.** Public functions take paths and return paths or plain
-  data. No ambient working-directory lookups, no open handles, no context
-  objects with live state.
-- **No upstream types in public signatures.** `pyssp_standard`,
-  `pyssp_simulate`, `pyssp_sysml2`, and `sequence_extensions` objects stay
-  behind their adapter module.
-- **Inputs are read-only.** Functions never write to an input path, and a
-  verdict is always derived from the inputs as they were found.
+  data. No ambient working-directory lookups, no open handles.
+- **No upstream types in public signatures** beyond the package that owns them.
+- **Inputs are read-only.**
 
-`tests/test_layering.py` enforces the import rules. If it fails, fix the code,
-not the test.
+`tests/test_layering.py` enforces the import rules. Fix the code, not the test.
 
 ## Conventions
 
-- `docs/breakdown/` holds intent, architecture, schemas, and decisions.
-- ADRs are `ADR-<NNN>.md`; design decisions are `DD-<NNN>-<slug>.md`.
-- Documentation states the contract; the docstring states the local rule.
+- `docs/breakdown/` holds intent, architecture, catalog, and decisions.
+- `ADR-<NNN>.md` architecture, `DD-<NNN>-<slug>.md` implementation,
+  `ED-<NNN>-<slug>.md` evolution.

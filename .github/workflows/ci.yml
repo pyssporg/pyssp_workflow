@@ -11,17 +11,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - python: "3.10"
-            extras: "dev"
-          - python: "3.11"
-            extras: "dev,flow"
-          - python: "3.12"
-            extras: "dev,flow"
+        python: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: false
 
       - uses: actions/setup-python@v5
         with:
@@ -30,18 +22,21 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[${{ matrix.extras }}]"
+          python -m pip install -e ".[dev]"
 
       - name: Tests
         run: python -m pytest
 
-      - name: Core imports nothing third-party
+      - name: No capability creep
         run: |
           python - <<'PY'
-          import sys
-          import pyssp_vv
-          import pyssp_vv.spec.assessment
-          import pyssp_vv.evidence.bundle
-          heavy = {"numpy", "pandas", "matplotlib", "sequence_extensions"} & set(sys.modules)
-          assert not heavy, f"core imported {sorted(heavy)}"
+          import pathlib
+          forbidden = ("passed(", "def compare(", "def judge(")
+          hits = []
+          for path in pathlib.Path("src").rglob("*.py"):
+              text = path.read_text()
+              for needle in forbidden:
+                  if needle in text:
+                      hits.append(f"{path}: {needle}")
+          assert not hits, "capability leaked into the workflow layer:\n" + "\n".join(hits)
           PY
