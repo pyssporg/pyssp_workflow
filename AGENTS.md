@@ -25,14 +25,14 @@
 - **No upstream types in public signatures.** `pyssp_standard`,
   `pyssp_simulate`, `pyssp_sysml2`, and `sequence_extensions` objects stay
   behind their adapter module.
-- **No auto-remediation.** The library may not modify a model, parameter set,
-  or tolerance to make a case pass.
+- **Inputs are read-only.** Functions never write to an input path, and a
+  verdict is always derived from the inputs as they were found.
 
 `tests/test_layering.py` enforces the import rules. If it fails, fix the code,
 not the test.
 
 ## Conventions
 
-- `product-breakdown/` holds intent, architecture, schemas, and decisions.
+- `docs/breakdown/` holds intent, architecture, schemas, and decisions.
 - ADRs are `ADR-<NNN>.md`; design decisions are `DD-<NNN>-<slug>.md`.
 - Documentation states the contract; the docstring states the local rule.

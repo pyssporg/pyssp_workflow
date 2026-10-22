@@ -81,6 +81,25 @@ Every oracle declares its provenance:
 An oracle may read the built artifact and its own reference data. It may not
 read authoring intermediates, and it may not modify inputs.
 
+## Validation path
+
+Verification oracles compare a candidate against an expectation that shares its
+form: another simulation, a formula, a property. Validation compares a model
+against the world, which introduces channel mapping, unit conversion, irregular
+sampling, gaps, and measurement uncertainty.
+
+Two consequences:
+
+- `compare_measurement` is asymmetric and configurable. It cannot reuse the
+  engine-to-engine metric set unchanged, because one side is an estimate and the
+  other is an observation with a validity range.
+- A validation verdict requires an intended-use statement and a criterion fixed
+  in advance. Without both, the result is a discrepancy record, not a verdict.
+
+The oracle protocol itself does not change: `measurement` is a provenance and
+the assessment already carries the tolerance. What is missing is the
+intended-use field and the measured-data contract.
+
 ## Packaging
 
 | Extra | Provides |
@@ -94,11 +113,16 @@ read authoring intermediates, and it may not modify inputs.
 
 ## Open questions
 
-1. **Measurement verdicts.** Does `compare_measurement` require a pre-registered
-   criterion to return `pass`/`fail`, or may it return a discrepancy record with
-   no verdict? Decision needed before its signature is fixed.
-2. **Verdict composition.** When an assessment declares several oracles, is the
+1. **Intended-use record.** Validation requires an intended-use statement and an
+   operating envelope. Is that a new `Assessment` field, or a separate document
+   referenced by id? This decides whether the schema takes a major bump before
+   `compare_measurement` exists.
+2. **Measurement verdicts.** Given an intended-use record and a criterion fixed
+   in advance, does `compare_measurement` return `pass`/`fail`, or always a
+   discrepancy record plus the criterion's outcome? Decision needed before its
+   signature is fixed.
+3. **Verdict composition.** When an assessment declares several oracles, is the
    bundle-level outcome all-must-pass, a scored aggregate, or a per-oracle
    report with no aggregate? Field reserved; policy not decided.
-3. **Disposition storage.** Per-project data file versus per-assessment file.
+4. **Disposition storage.** Per-project data file versus per-assessment file.
    Both are explicit paths; the choice affects how waivers are reviewed.

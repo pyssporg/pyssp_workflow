@@ -23,7 +23,7 @@ Every node obeys:
 | `simulate` | execute | SSP root, resolved params, window, backend, `out_dir` | result CSV, run manifest | later |
 | `compare_engines` | compare | two run manifests, `out_dir` | metrics CSV, comparison manifest | later |
 | `compare_reference` | compare | run manifest, reference CSV, tolerance, `out_dir` | metrics CSV, comparison manifest | later |
-| `compare_measurement` | compare | run manifest, measurement path, channel map, `out_dir` | discrepancy report | design blocked (see open questions) |
+| `compare_measurement` | compare | run manifest, measurement path, channel map, `out_dir` | discrepancy report | design blocked: intended-use contract (see open questions) |
 | `evaluate_oracle` | oracle | candidate run dir, oracle ref, `out_dir` | verdict record path | later |
 | `write_bundle` | evidence | `EvidenceBundle`, `out_dir` | `evidence.json` path | **implemented** |
 
@@ -40,5 +40,6 @@ body. Futures are passed as direct arguments when they form a dependency edge.
 ## Deliberately absent
 
 - `plot` — plotting is a reporting adapter, not a verification step.
-- `fix_model`, `relax_tolerance`, `auto_accept` — auto-remediation is forbidden
-  by intent; a failing oracle must produce a failing or invalid verdict.
+- `fix_model`, `relax_tolerance`, `auto_accept` — no node writes to an input
+  path, so there is nothing for these to do; a failing oracle yields a failing
+  or invalid verdict.

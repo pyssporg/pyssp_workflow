@@ -16,15 +16,21 @@ a flow engine.
 
 ## Scope
 
-This is a **verification** library. It answers whether a simulation
-implementation conforms to a declared expectation: another engine's trajectory,
-a trusted reference, an analytical solution, an invariant, a metamorphic
-relation, or measured data with a pre-registered acceptance threshold.
+`pyssp_vv` covers both halves of V&V. Verification is implemented; validation is
+the direction of travel.
 
-It is **not** a validation framework. It does not establish fitness for an
-intended use in an operational context, and it does not certify an engine as
-correct. Agreement between engines is recorded as *agreement*, never as
-*correctness*: shared bugs are invisible to cross-engine comparison.
+**Verification** answers whether a simulation implementation conforms to a
+declared expectation: another engine's trajectory, a trusted reference, an
+analytical solution, an invariant, a metamorphic relation. Agreement between
+engines is recorded as *agreement*, never as *correctness*: shared bugs are
+invisible to cross-engine comparison.
+
+**Validation** answers whether a model is adequate for an intended use. The
+mechanism is the same oracle protocol, but a validation claim needs an
+intended-use statement, measured data with uncertainty, and a criterion fixed
+before the comparison runs. Until a case carries all three, measurement
+comparison returns a discrepancy record rather than a verdict. See
+[future direction](docs/breakdown/00-intent/intent.md#future-direction-validation).
 
 ## Status
 
@@ -41,7 +47,7 @@ pip install -e ".[dev,flow]"     # node wrappers (Python 3.11+, sequence_extensi
 
 Extras: `build`, `simulate`, `flow`, `analysis`, `report`, `all`. The `build`
 and `simulate` extras are empty placeholders until the pyssp submodules are
-linked (see [submodules](product-breakdown/05-operation/submodules.md)).
+linked (see [submodules](docs/breakdown/05-operation/submodules.md)).
 
 ## Shape
 
@@ -70,8 +76,8 @@ verdict is `invalid`, not `fail`.
 
 ## Documentation
 
-- [Intent](product-breakdown/00-intent/intent.md)
-- [Architecture and import rules](product-breakdown/02-architecture/architecture.md)
-- [Node catalog](product-breakdown/02-architecture/node-catalog.md)
-- [Assessment schema](product-breakdown/03-implementation/schema/assessment.md)
-- [Evidence schema](product-breakdown/03-implementation/schema/evidence.md)
+- [Intent](docs/breakdown/00-intent/intent.md)
+- [Architecture and import rules](docs/breakdown/02-architecture/architecture.md)
+- [Node catalog](docs/breakdown/02-architecture/node-catalog.md)
+- [Assessment schema](docs/breakdown/03-implementation/schema/assessment.md)
+- [Evidence schema](docs/breakdown/03-implementation/schema/evidence.md)
