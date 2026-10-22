@@ -9,7 +9,7 @@
 
 [submodule "3rd_party/pyssp_standard"]
 	path = 3rd_party/pyssp_standard
-	url = https://github.com/jkCXf9X4/pyssp_standard.git
+	url = https://github.com/pyssporg/experimental_pyssp_standard.git
 
 [submodule "3rd_party/pyssp_simulate"]
 	path = 3rd_party/pyssp_simulate
