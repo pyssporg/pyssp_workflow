@@ -1,14 +1,15 @@
-# Declared, not linked for the unlisted entries. Sections exist so the intended
-# dependency set is reviewable; entries without a gitlink are inert.
+# Development tree. Every entry below is linked under 3rd_party/, and the
+# gitlink in the parent commit pins the revision this package was tested with.
 #
-# Linking: git submodule add -b main <url> 3rd_party/<name>
-# This reuses the section below; do not rewrite it.
+# To bump one: check out the new revision inside the submodule, then
+# `git add 3rd_party/<name>`. Change a URL only with
+# `git submodule set-url 3rd_party/<name> <url>`.
 #
 # See docs/breakdown/05-operation/submodules.md.
 
 [submodule "3rd_party/pyssp_standard"]
 	path = 3rd_party/pyssp_standard
-	url = https://github.com/pyssporg/pyssp_standard.git
+	url = https://github.com/jkCXf9X4/pyssp_standard.git
 
 [submodule "3rd_party/pyssp_simulate"]
 	path = 3rd_party/pyssp_simulate

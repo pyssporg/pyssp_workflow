@@ -1,0 +1,10 @@
+# Node layer dependencies (Python 3.11+).
+#
+#   pip install -r requirements-flow.txt
+#   pip install -e ".[dev]"
+#
+# sequence_extensions declares the distribution name sequence-extensions-flow
+# to avoid the unrelated PyPI project named sequence-extensions; the import
+# package is still `sequence_extensions`.
+-r requirements-dev.txt
+-e 3rd_party/sequence_extensions

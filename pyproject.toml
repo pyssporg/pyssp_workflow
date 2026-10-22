@@ -21,14 +21,14 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
 ]
-# Measurement, judgment, and evidence come from pyssp_vv. During development it
-# is installed from the sibling checkout (see requirements-dev.txt); it is not
-# yet on PyPI, so it is not declared here and `pip install -e .` stays offline.
+# Measurement, judgment, and evidence come from pyssp_vv. Capabilities are
+# linked under 3rd_party/ and installed from requirements-dev.txt during
+# development, so `pip install -e .` stays offline. These names are reserved
+# for the first PyPI release; see ADR-003.
 dependencies = []
 
 [project.optional-dependencies]
 flow = ["sequence-extensions-flow>=3"]
-# Placeholders until the pyssp submodules are linked under 3rd_party/.
 build = []
 simulate = []
 all = ["sequence-extensions-flow>=3"]
@@ -46,6 +46,8 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# The capability checkouts keep their own style and their own CI.
+extend-exclude = ["3rd_party"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]

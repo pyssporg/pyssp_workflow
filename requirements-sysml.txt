@@ -1,0 +1,7 @@
+# Authoring environment. The authoring layer shells out to the `pyssp` CLI and
+# never imports pyssp_sysml2 or pyssp_standard, so this environment can pin a
+# different pyssp_standard revision from the runtime one.
+#
+#   pip install -r requirements-sysml.txt
+-e 3rd_party/pyssp_standard
+-e 3rd_party/pyssp_sysml2

@@ -1,10 +1,13 @@
-# Development layout: `pyssp_workflow` and `pyssp_vv` are sibling checkouts
-# under ssp_references/3rd_party/. Install the capability with its measurement
-# extra, because this package composes measurement as well as judgment:
+# Development layout: every capability is a submodule under 3rd_party/.
+# These are the ones the default test suite imports.
 #
+#   git submodule update --init --recursive
 #   pip install -r requirements-dev.txt
-#
-# Then install this package itself:
-#
 #   pip install -e ".[dev]"
--e ../pyssp_vv[measure]
+#
+# The flow engine and the SysML tool have their own files because they add
+# platform or Python-version constraints: requirements-flow.txt and
+# requirements-sysml.txt.
+-e 3rd_party/pyssp_standard
+-e 3rd_party/pyssp_simulate
+-e 3rd_party/pyssp_vv[measure]

@@ -64,5 +64,6 @@ package two audiences and two release cadences.
 
 1. Whether `plan` should be able to construct nodes without importing the node
    layer (currently it must not, so plans stay inert data).
-2. Where the `pyssp_vv` dependency is declared. It is not on PyPI yet, so it is
-   installed from a sibling checkout rather than from `pyproject.toml`.
+
+The dependency layout is settled: capabilities are linked under `3rd_party/` and
+installed from `requirements-dev.txt`. See [ADR-003](decisions/ADR-003.md).

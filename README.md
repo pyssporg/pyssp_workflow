@@ -31,10 +31,12 @@ flow engine.
 ## Install
 
 ```bash
+git clone --recurse-submodules git@github.com:pyssporg/pyssp_workflow.git
+cd pyssp_workflow
 python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
 pip install -e ".[dev]"
-pip install -e "../pyssp_vv[measure]"   # sibling checkout; see requirements-dev.txt
-pip install -e ".[dev,flow]"        # node wrappers (Python 3.11+)
+pip install -r requirements-flow.txt   # node layer, Python 3.11+
 ```
 
 ## Status

@@ -1,34 +1,43 @@
 # Submodules
 
-Both packages are declared as submodules and **not linked** in this repository's
-working tree until development on them stabilises. `.gitmodules` lists the
-intended dependency set; no gitlink exists for the unlinked entries.
+All capabilities this package composes are linked under `3rd_party/`. Each
+gitlink in the parent commit pins the revision the package was tested with.
 
 | Path | Upstream | Used by |
 | --- | --- | --- |
-| `3rd_party/pyssp_standard` | `pyssporg/pyssp_standard` | `build`, `params` |
+| `3rd_party/pyssp_standard` | `jkCXf9X4/pyssp_standard` | `build`, `params` |
 | `3rd_party/pyssp_simulate` | `pyssporg/pyssp_simulate` | `execute` |
 | `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
 | `3rd_party/pyssp_vv` | `pyssporg/pyssp_vv` | `measure`, `judge`, `evidence` |
 | `3rd_party/sequence_extensions` | `jkCXf9X4/sequence_extensions` | `nodes` |
 
+`pyssp_standard` is pinned to a revision on its `architecture_review` branch,
+not `main`, so its `.gitmodules` entry has no `branch` and the checkout stays
+detached. Do not add `-b main` for it.
+
 ## Development layout
 
-`pyssp_workflow` and `pyssp_vv` are sibling checkouts. Install the capability
-first:
-
 ```bash
-pip install -r requirements-dev.txt   # -e ../pyssp_vv
+git clone --recurse-submodules <this repository>
+cd pyssp_workflow
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt   # standard, simulate, vv[measure]
 pip install -e ".[dev]"
 ```
 
-## Linking one
+The flow engine and the SysML tool have their own files:
+
+- `requirements-flow.txt` adds `sequence_extensions` (Python 3.11+).
+- `requirements-sysml.txt` installs `pyssp_sysml2` into a CLI-only environment.
+
+## Updating one
 
 ```bash
-git submodule add -b main https://github.com/pyssporg/pyssp_vv.git \
-  3rd_party/pyssp_vv
+git -C 3rd_party/pyssp_vv fetch
+git -C 3rd_party/pyssp_vv checkout <revision>
+git add 3rd_party/pyssp_vv
 ```
 
-This reuses the existing `.gitmodules` section; do not rewrite it. Review the
-submodule's local diff before updating it, and run both repositories' tests
-before recording a new gitlink.
+Run the submodule's tests and this package's tests before recording the new
+gitlink. Change a URL only with `git submodule set-url 3rd_party/<name> <url>`;
+editing `.gitmodules` by hand risks breaking `git submodule sync`.
