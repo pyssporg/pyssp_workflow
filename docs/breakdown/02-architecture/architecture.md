@@ -81,6 +81,10 @@ Every oracle declares its provenance:
 An oracle may read the built artifact and its own reference data. It may not
 read authoring intermediates, and it may not modify inputs.
 
+The policy that carries these choices — alignment, metrics, criterion,
+sufficiency limits — and the four judgment steps that apply it are specified in
+[ED-001](../06-evolution/ED-001-judgment-under-policy.md).
+
 ## Validation path
 
 Verification oracles compare a candidate against an expectation that shares its

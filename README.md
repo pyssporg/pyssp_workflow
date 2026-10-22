@@ -91,3 +91,4 @@ verdict is `invalid`, not `fail`.
 - [Node catalog](docs/breakdown/02-architecture/node-catalog.md)
 - [Assessment schema](docs/breakdown/03-implementation/schema/assessment.md)
 - [Evidence schema](docs/breakdown/03-implementation/schema/evidence.md)
+- [Judgment under a policy (proposed)](docs/breakdown/06-evolution/ED-001-judgment-under-policy.md)

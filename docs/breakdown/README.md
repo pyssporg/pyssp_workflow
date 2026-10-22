@@ -12,11 +12,13 @@ things a change must justify.
 | `02-architecture/` | System shape, import rules, node catalog, ADRs |
 | `03-implementation/` | Interchange schemas and design decisions |
 | `05-operation/` | How to run and maintain the library |
+| `06-evolution/` | Forward-looking decisions and direction of travel |
 
 ## Naming
 
 - `ADR-<NNN>.md` — architecture decision, bare number, title inside the file
 - `DD-<NNN>-<slug>.md` — implementation decision
+- `ED-<NNN>-<slug>.md` — evolution decision: a direction of travel before code exists
 - Schemas are named after the artifact they describe (`assessment`, `evidence`)
 
 ## Reading order
