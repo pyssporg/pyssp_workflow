@@ -59,3 +59,6 @@ def inject_scenario(
             )
 
         yield root
+
+
+__all__ = ["inject_scenario"]

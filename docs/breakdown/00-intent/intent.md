@@ -24,6 +24,10 @@ It does **not** contain the core of any of those capabilities.
 - **Composition only.** If a function computes a metric, a criterion, or a
   verdict, it lives in `pyssp_vv`. If it parses an SSD, it lives in
   `pyssp_standard`.
+- **Standard artifacts first at library borders.** Pass SSP/SSD/SSV/SSM/LS-REF
+  or result CSV by path. If no standard covers the need, pass only a type that
+  is explicitly part of the producer's public API; never pass internal modules,
+  private objects, or adapter-only structures.
 - **One node owns one output path**, derived from the assessment id, never from
   the working directory.
 - **Engine execution happens in a child process.** A thread cannot be
@@ -34,6 +38,9 @@ It does **not** contain the core of any of those capabilities.
   import `pyssp_vv`.
 - **Nodes are optional.** The package installs without a flow engine; the
   `flow` extra adds it.
+- **Public modules are explicit.** `authoring`, `execute`, `params`, and the
+  optional `nodes` layer are the public module surfaces. The package top-level
+  import stays dependency-free so optional capabilities remain optional.
 
 ## Non-goals
 

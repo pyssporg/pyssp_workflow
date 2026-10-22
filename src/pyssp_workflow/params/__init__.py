@@ -64,3 +64,10 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
         ssv_path=_resolve(base, str(scenario["ssv"])),
         ssm_path=_resolve(base, str(scenario["ssm"])),
     )
+
+
+__all__ = [
+    "Experiment",
+    "StudyDescriptor",
+    "read_study_descriptor",
+]

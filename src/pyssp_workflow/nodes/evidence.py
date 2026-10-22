@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pyssp_vv.evidence.bundle import EvidenceBundle
+from pyssp_vv.evidence import EvidenceBundle
 from sequence_extensions.flow import node
 
 

@@ -19,6 +19,14 @@
 Dependencies point inwards. `pyssp_workflow` may import all of `pyssp_vv`;
 `pyssp_vv` imports nothing from the ecosystem.
 
+## Library boundary rule
+
+A library border carries a standardized artifact first (SSP, SSD, SSV, SSM,
+LS-REF, or result CSV). If no standard covers the need, only a documented
+public API type may cross. Internal modules, private objects, and adapter-only
+structures never cross. This package is a consumer: it imports producer public
+surfaces and does not reach into producer internals.
+
 ## Layers and rules
 
 | Layer | Purpose | May import | Must not |
