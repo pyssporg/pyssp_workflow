@@ -33,7 +33,7 @@ flow engine.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pip install -e ../pyssp_vv          # sibling checkout, see requirements-dev.txt
+pip install -e "../pyssp_vv[measure]"   # sibling checkout; see requirements-dev.txt
 pip install -e ".[dev,flow]"        # node wrappers (Python 3.11+)
 ```
 
