@@ -13,6 +13,7 @@ except ImportError as exc:  # pragma: no cover - depends on the extra
         "pip install 'pyssp-workflow[flow]'"
     ) from exc
 
+from pyssp_workflow.nodes.authoring import derive_ssd, derive_ssp, derive_study
 from pyssp_workflow.nodes.evidence import write_bundle
 
-__all__ = ["write_bundle"]
+__all__ = ["derive_ssd", "derive_ssp", "derive_study", "write_bundle"]
