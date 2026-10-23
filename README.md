@@ -20,13 +20,38 @@ criterion, or a verdict, it is in the wrong repository.
 ## Shape
 
 ```text
-authoring ──> build ──> params ──> simulate ──> measure ──> judge ──> evidence
-   (CLI)     (standard)            (simulate)   (pyssp_vv)  (pyssp_vv)
+authoring ──> binding ──> simulate ──> compare
+ (builds)     (SSP params)  (external)   (pyssp_vv.measure)
 ```
+
+A study descriptor names the scenario SSV and SSM and the experiment window.
+`authoring` turns the SysML architecture into a study and an exported model SSP;
+`build_fixture` returns one `BuiltFixture` per study, with the artifact paths
+under `artifacts/studies/<model>/<study>` and
+`artifacts/models/<model>/<study>/<build_name>`. `binding` writes the chosen
+scenario binding into the built SSP, which is then run by `pyssp_simulate`.
+`compare` measures one candidate result CSV against a reference and writes
+`metrics.csv`; it produces no verdict.
 
 Each step is a plain, importable function. `pyssp_workflow.nodes` adds scheduling
 policy — retries, timeouts, parallelism — without the domain layer depending on a
 flow engine.
+
+## Modules
+
+| Module | Surface |
+| --- | --- |
+| `authoring` | SysML derivation through the `pyssp` CLI, study/model/fixture builds, legacy checked-in SSP builds, Modelica FMU build, build reporting |
+| `binding` | `Binding` records (`ExternalStudy`, `InlineRoot`, `TargetNamedExternal`, `InlineComponents`, `InlineWithMapping`) and `apply_bindings`, which mutates a built SSP in place |
+| `compare` | `ResultRef`, `ComparisonRequest`, `ComparisonRecord`, and `compare_csvs` |
+| `study` | `Experiment`, `StudyDescriptor`, `read_study_descriptor`, `Scenario`, `read_scenario`, `scenario_targets` |
+| `fixture` | `BuiltFixture` and the `artifacts_root`, `study_dir`, and `model_dir` path helpers |
+| `nodes` | optional scheduling wrappers: `derive_ssd`, `derive_ssp`, `derive_study`, `write_bundle` |
+
+`compare` reads result CSVs by path and `study` reads the descriptor and scenario
+artifacts by path; both return plain records. `binding` reads the scenario SSV
+and SSM as read-only inputs. Measurement and judgment stay in `pyssp_vv`,
+simulation in `pyssp_simulate`, and SSP assembly in `pyssp_standard`.
 
 ## Install
 
@@ -41,8 +66,10 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
 
 ## Status
 
-Pre-alpha (`0.1.0`). The layer boundaries, node contract, and catalog are
-established; the modules are named empty contracts except for one evidence node.
+Pre-alpha (`0.1.0`). The module surfaces, dependency rules, node contract, and
+catalog are established. `authoring`, `binding`, `compare`, `study`, and `fixture`
+are implemented; the optional node layer wraps SysML derivation and evidence
+writing.
 
 ## Documentation
 

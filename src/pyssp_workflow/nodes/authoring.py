@@ -7,13 +7,14 @@ from pathlib import Path
 from sequence_extensions.flow import node
 
 from pyssp_workflow.authoring import (
+    DEFAULT_TIMEOUT_SECONDS,
     derive_ssd_from_sysml,
     derive_ssp_from_sysml,
     derive_study_from_sysml,
 )
 
 
-@node(timeout=1800.0)
+@node(timeout=DEFAULT_TIMEOUT_SECONDS)
 def derive_ssd(
     architecture_path: str,
     output_path: str,
@@ -31,7 +32,7 @@ def derive_ssd(
     )
 
 
-@node(timeout=1800.0)
+@node(timeout=DEFAULT_TIMEOUT_SECONDS)
 def derive_ssp(
     architecture_path: str,
     output_path: str,
@@ -51,7 +52,7 @@ def derive_ssp(
     )
 
 
-@node(timeout=1800.0)
+@node(timeout=DEFAULT_TIMEOUT_SECONDS)
 def derive_study(
     architecture_path: str,
     output_dir: str,

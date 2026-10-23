@@ -8,12 +8,24 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[1] / "src" / "pyssp_workflow"
 
 FLOW_LAYER = "nodes"
-JUDGE_ALLOWED = ("nodes", "cli")
+
+#: The internal modules each layer may import, from the bottom up.
+INTERNAL_DEPENDENCIES = {
+    "fixture": frozenset({"study"}),
+    "study": frozenset(),
+    "authoring": frozenset({"fixture", "study"}),
+    "binding": frozenset({"fixture", "study"}),
+    "compare": frozenset(),
+    "nodes": frozenset({"fixture", "study", "authoring", "binding", "compare"}),
+}
+
+#: Only the node layer may decide acceptability; there is no CLI layer.
+JUDGE_ALLOWED = ("nodes",)
 AUTHORING_MUST_NOT_IMPORT = ("pyssp_vv",)
 
-#: The V&V modules the execution layer may compose: measurement and the
+#: The V&V modules the comparison layer may compose: measurement and the
 #: stdlib-only evidence schema. Judgment and policy are not composable there.
-EXECUTE_MAY_IMPORT = ("pyssp_vv.measure", "pyssp_vv.evidence")
+COMPARE_MAY_IMPORT = ("pyssp_vv.measure", "pyssp_vv.evidence")
 
 #: Symbols that would mean a capability was reimplemented here.
 CAPABILITY_MARKERS = ("def compare(", "def judge(", "def passed(", "passed(")
@@ -31,6 +43,13 @@ def _layer(module: str) -> str:
     return parts[1] if len(parts) > 1 else ""
 
 
+def _internal_layer(name: str) -> str | None:
+    parts = name.split(".")
+    if parts[0] != "pyssp_workflow":
+        return None
+    return parts[1] if len(parts) > 1 else ""
+
+
 def _imports(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     names: list[str] = []
@@ -39,12 +58,43 @@ def _imports(path: Path) -> list[str]:
             names.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             names.append(node.module)
+            if node.module == "pyssp_workflow":
+                # ``from pyssp_workflow import fixture`` names a submodule.
+                for alias in node.names:
+                    candidate = SRC / alias.name
+                    if candidate.with_suffix(".py").exists() or candidate.is_dir():
+                        names.append(f"{node.module}.{alias.name}")
     return names
 
 
 def _walk():
     for path in sorted(SRC.rglob("*.py")):
         yield path, _module_name(path), _imports(path)
+
+
+def test_every_internal_layer_is_in_the_dependency_table():
+    layers = {_layer(module) for _path, module, _imports_ in _walk()} - {""}
+    undeclared = sorted(layers - set(INTERNAL_DEPENDENCIES))
+    assert not undeclared, (
+        "an internal layer has no declared dependencies:\n" + "\n".join(undeclared)
+    )
+
+
+def test_internal_modules_only_import_from_their_allowed_layers():
+    violations = []
+    for _path, module, imports in _walk():
+        layer = _layer(module)
+        allowed = INTERNAL_DEPENDENCIES.get(layer, frozenset())
+        for name in imports:
+            target = _internal_layer(name)
+            if target is None or target in ("", layer):
+                continue
+            if target not in allowed:
+                violations.append(f"{module} (layer {layer or 'package'}) imports {name}")
+    assert not violations, (
+        "an internal module imported a layer it must not depend on:\n"
+        + "\n".join(violations)
+    )
 
 
 def test_flow_engine_is_confined_to_the_node_layer():
@@ -73,7 +123,7 @@ def test_authoring_cannot_reach_the_judgment_layer():
     )
 
 
-def test_judgment_is_only_reachable_from_the_composition_layer():
+def test_judgment_is_only_reachable_from_the_node_layer():
     violations = [
         f"{module} imports {name}"
         for _path, module, imports in _walk()
@@ -82,20 +132,20 @@ def test_judgment_is_only_reachable_from_the_composition_layer():
         if name.startswith("pyssp_vv.judge")
     ]
     assert not violations, (
-        "an execution-side module decides acceptability:\n" + "\n".join(violations)
+        "a module outside the node layer decides acceptability:\n" + "\n".join(violations)
     )
 
 
-def test_execute_composes_measurement_without_reaching_judgment():
+def test_compare_composes_measurement_without_reaching_judgment():
     violations = [
         f"{module} imports {name}"
         for _path, module, imports in _walk()
-        if _layer(module) == "execute"
+        if _layer(module) == "compare"
         for name in imports
-        if name.startswith("pyssp_vv") and name not in EXECUTE_MAY_IMPORT
+        if name.startswith("pyssp_vv") and name not in COMPARE_MAY_IMPORT
     ]
     assert not violations, (
-        "the execution layer imported a V&V module it must not compose:\n"
+        "the comparison layer imported a V&V module it must not compose:\n"
         + "\n".join(violations)
     )
 

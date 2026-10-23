@@ -33,8 +33,8 @@ node-ready work units, and owns the decisions that only exist at that level:
 what runs, in what order, where artifacts go, and what counts as one unit of
 retry. It does not implement the capabilities it composes.
 
-- Plain functions cover authoring, parameters, execution, planning, and
-  reporting; `nodes` adds scheduling policy and `cli` exposes the command line.
+- Plain functions cover authoring, binding, study descriptors and scenarios,
+  result comparison, and fixture paths; `nodes` adds scheduling policy.
 - The capabilities live in the `3rd_party/` submodules; this package calls them.
 
 ## Hard constraints
@@ -46,8 +46,8 @@ retry. It does not implement the capabilities it composes.
   imported there and nowhere else.
 - **`authoring` must not import `pyssp_vv`.** The path that produces a model must
   not reach the judgment that evaluates it.
-- **Only `nodes` and `cli` may import `pyssp_vv.judge`.** Build, execute, and
-  plan are execution-side and must not decide acceptability.
+- **Only `nodes` may import `pyssp_vv.judge`.** Build, bind, and compare are
+  execution-side and must not decide acceptability.
 - **Explicit paths.** Public functions take paths and return paths or plain
   data. No ambient working-directory lookups, no open handles.
 - **No upstream types in public signatures** beyond the package that owns them.

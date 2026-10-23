@@ -1,6 +1,6 @@
 """Compare result CSVs.
 
-``compare_result_csvs`` composes one comparison: it loads two result CSVs,
+``compare_csvs`` composes one comparison: it loads two result CSVs,
 measures the candidate against the reference with ``pyssp_vv.measure``, writes
 ``<out_dir>/metrics.csv``, and returns a record. Thresholds, verdicts, manifests,
 and artifact layout stay with the caller.
@@ -69,8 +69,6 @@ class ComparisonRecord:
     candidate_label: str
     metrics_csv: Path
     summary: ComparisonSummary
-    status: str = "completed"
-    error: str | None = None
 
     def to_dict(self, base_dir: Path | str) -> dict[str, object]:
         """Plain data; ``metrics`` is relative to ``base_dir``."""
@@ -79,8 +77,6 @@ class ComparisonRecord:
             "candidate_label": self.candidate_label,
             "metrics": Path(os.path.relpath(self.metrics_csv, start=base_dir)).as_posix(),
             "summary": self.summary.to_dict(),
-            "status": self.status,
-            "error": self.error,
         }
 
     @classmethod
@@ -94,14 +90,11 @@ class ComparisonRecord:
         summary = data["summary"]
         if not isinstance(summary, Mapping):
             raise ValueError("ComparisonRecord summary must be a mapping")
-        error = data.get("error")
         return cls(
             reference_label=str(data["reference_label"]),
             candidate_label=str(data["candidate_label"]),
             metrics_csv=metrics_csv,
             summary=ComparisonSummary.from_dict(summary),
-            status=str(data.get("status", "completed")),
-            error=None if error is None else str(error),
         )
 
 
@@ -117,7 +110,7 @@ def _trajectory(data, *, label: str) -> Trajectory:
     )
 
 
-def compare_result_csvs(request: ComparisonRequest) -> ComparisonRecord:
+def compare_csvs(request: ComparisonRequest) -> ComparisonRecord:
     """Measure ``request.candidate`` against ``request.reference``.
 
     Reads both CSVs with ``pyssp_simulate.read_result_csv`` (root system and
@@ -185,5 +178,5 @@ __all__ = [
     "ComparisonRecord",
     "ComparisonRequest",
     "ResultRef",
-    "compare_result_csvs",
+    "compare_csvs",
 ]

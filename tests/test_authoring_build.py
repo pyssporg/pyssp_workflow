@@ -11,12 +11,15 @@ from pyssp_standard.ssd import Ssd1Component, System
 
 from pyssp_workflow import authoring
 from pyssp_workflow.authoring import (
+    _process,
     build_fixture,
     build_fmu_from_modelica,
     build_legacy_model,
     report_builds,
 )
-from pyssp_workflow.packaging import apply_external_ssv_ssm
+from pyssp_workflow.authoring import build as authoring_build
+from pyssp_workflow.binding import ExternalStudy, apply_bindings
+from pyssp_workflow.fixture import BuiltFixture
 
 OMC = shutil.which("omc")
 
@@ -106,8 +109,8 @@ def _stub_derivations(
         _write_ssp_archive(Path(output_path))
         return Path(output_path)
 
-    monkeypatch.setattr(authoring, "derive_study_from_sysml", fake_study)
-    monkeypatch.setattr(authoring, "derive_ssp_from_sysml", fake_ssp)
+    monkeypatch.setattr(authoring_build, "derive_study_from_sysml", fake_study)
+    monkeypatch.setattr(authoring_build, "derive_ssp_from_sysml", fake_ssp)
 
 
 def _fixture_dir(tmp_path: Path) -> Path:
@@ -135,6 +138,7 @@ def test_build_fixture_runs_study_then_model_without_packaging(
     assert calls == ["study", "model"]
     assert studies_seen == ["test_baseline"]
     build = builds["test_baseline"]
+    assert isinstance(build, BuiltFixture)
     assert build.model_name == "demo"
     assert build.study == "test_baseline"
     assert build.study_dir == (
@@ -160,7 +164,7 @@ def test_apply_external_ssv_ssm_packages_a_built_record(
         studies=("test_baseline",),
     )
 
-    apply_external_ssv_ssm(builds["test_baseline"])
+    apply_bindings(builds["test_baseline"], ExternalStudy())
 
     output = builds["test_baseline"].model_dir
     assert (output / "resources" / "Scenario.ssv").is_file()
@@ -246,7 +250,7 @@ def test_each_build_record_is_packaged_explicitly(
         studies=("test_baseline", "second"),
     )
     for build in builds.values():
-        apply_external_ssv_ssm(build)
+        apply_bindings(build, ExternalStudy())
 
     for build in builds.values():
         assert (build.model_dir / "resources" / "Scenario.ssv").is_file()
@@ -378,7 +382,7 @@ def test_build_legacy_model_flattens_the_system(tmp_path: Path) -> None:
 def test_build_fmu_from_modelica_requires_omc(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(authoring.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(_process.shutil, "which", lambda _name: None)
     source = tmp_path / "M.mo"
     source.write_text("model M end M;", encoding="utf-8")
 

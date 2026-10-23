@@ -16,8 +16,9 @@
                        pyssp_standard · pyssp_sysml2 · sequence_extensions
 ```
 
-Dependencies point inwards. `pyssp_workflow` may import all of `pyssp_vv`;
-`pyssp_vv` imports nothing from the ecosystem.
+Dependencies point inwards. `pyssp_workflow` imports the public surfaces of the
+capabilities it composes; the capabilities import nothing from it. Only `nodes`
+may import `pyssp_vv.judge`.
 
 ## Library boundary rule
 
@@ -27,18 +28,16 @@ public API type may cross. Internal modules, private objects, and adapter-only
 structures never cross. This package is a consumer: it imports producer public
 surfaces and does not reach into producer internals.
 
-## Layers and rules
+## Modules and rules
 
-| Layer | Purpose | May import | Must not |
+| Module | Purpose | May import | Must not |
 | --- | --- | --- | --- |
-| `nodes` | scheduling policy over domain functions | `sequence_extensions`, all of `pyssp_vv`, domain modules | implement measurement or judgment |
-| `plan` | inert execution plans | stdlib, `pyssp_workflow` | `sequence_extensions`, `pyssp_vv.judge` |
-| `authoring` | SysML/SSD and fixture builds via external CLI and `omc` | stdlib, subprocess, `pyssp_standard` | `pyssp_vv`, `pyssp_sysml2` |
-| `build`, `params` | SSP assembly and parameter resolution | `pyssp_standard` adapter, `pyssp_vv.measure` if needed | `pyssp_vv.judge` |
-| `packaging` | apply a study scenario to a built SSP | `pyssp_standard`, `authoring.FixtureBuild`, `params` | reimplement SSP assembly |
-| `execute` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
-| `report` | figures from a measurement | `pyssp_vv.measure.figures`, renderer extra | define what a figure shows |
-| `cli` | thin commands | all of the above | duplicate logic |
+| `nodes` | scheduling policy over domain functions | `sequence_extensions`, every internal module, all of `pyssp_vv` | implement measurement or judgment |
+| `authoring` | SysML derivation, study and fixture builds, Modelica FMU build | stdlib, subprocess, `pyssp_standard`, `fixture`, `study` | `pyssp_vv`, `pyssp_sysml2` |
+| `binding` | apply binding records that write a study scenario into a built SSP | `pyssp_standard`, `fixture`, `study` | `pyssp_vv`, reimplement SSP assembly |
+| `compare` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
+| `fixture` | `BuiltFixture` record and artifact path helpers | `study` | perform a build or read a scenario |
+| `study` | study descriptor and standardized scenario artifacts as plain data | `pyssp_standard` | `pyssp_vv`, rewrite an SSV or SSM |
 
 Enforced by `tests/test_layering.py`.
 
@@ -46,8 +45,8 @@ The two rules that matter most:
 
 1. **`authoring` cannot import `pyssp_vv`.** The path that produces a model must
    not be able to reach the layer that evaluates it.
-2. **Only `nodes` and `cli` may import `pyssp_vv.judge`.** Build, execute, and
-   plan are execution-side; they do not decide acceptability.
+2. **Only `nodes` may import `pyssp_vv.judge`.** Build, bind, and compare are
+   execution-side; they do not decide acceptability.
 
 ## Node contract
 
@@ -71,8 +70,7 @@ package two audiences and two release cadences.
 
 ## Open questions
 
-1. Whether `plan` should be able to construct nodes without importing the node
-   layer (currently it must not, so plans stay inert data).
+None at present. The module surfaces were settled in [ADR-004](decisions/ADR-004.md).
 
 The dependency layout is settled: capabilities are linked under `3rd_party/` and
 installed from `requirements-dev.txt`. See [ADR-003](decisions/ADR-003.md).
