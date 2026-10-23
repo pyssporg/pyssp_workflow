@@ -93,6 +93,7 @@ def derive_ssp_from_sysml(
     fmu_root: Path | str | None = None,
     parameter_set_prefix: str = "resources/parameter_sets",
     validate_fmus: bool = True,
+    allow_missing_fmus: bool = False,
     type_check: bool = True,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> Path:
@@ -114,6 +115,8 @@ def derive_ssp_from_sysml(
         arguments.extend(["--fmu-root", str(Path(fmu_root))])
     if not validate_fmus:
         arguments.append("--skip-fmu-validation")
+    if allow_missing_fmus:
+        arguments.append("--allow-missing-fmus")
     if not type_check:
         arguments.append("--skip_type_check")
     _run(pyssp=pyssp, arguments=arguments, timeout=timeout)
