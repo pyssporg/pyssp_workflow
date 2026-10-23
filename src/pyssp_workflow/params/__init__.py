@@ -18,7 +18,6 @@ class Experiment:
     start_time: float
     stop_time: float
     step_size: float
-    tolerance: float
 
 
 @dataclass(frozen=True)
@@ -58,7 +57,6 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
             start_time=float(experiment_data["start_time"]),
             stop_time=float(experiment_data["stop_time"]),
             step_size=float(experiment_data["step_size"]),
-            tolerance=float(experiment_data["tolerance"]),
         ),
         set_name=str(scenario["set"]),
         ssv_path=_resolve(base, str(scenario["ssv"])),

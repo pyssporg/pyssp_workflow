@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from pyssp_standard import SSD, SSM, SSV
 from pyssp_standard.ssd import ParameterBinding, System
 
-from pyssp_workflow.execute import inject_scenario
+from pyssp_workflow.execute import package_scenario
 from pyssp_workflow.params import read_study_descriptor
 
 
@@ -30,7 +32,6 @@ def _write_scenario(study_dir: Path) -> Path:
             "start_time": 0.0,
             "stop_time": 1.0,
             "step_size": 0.1,
-            "tolerance": 0.0001,
         },
         "scenario": {
             "set": "Scenario",
@@ -61,44 +62,58 @@ def test_read_study_descriptor_points_at_standard_artifacts(tmp_path: Path) -> N
     assert study.experiment.step_size == 0.1
 
 
-def test_inject_scenario_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
+def test_package_scenario_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
     descriptor = _write_scenario(tmp_path / "study")
     study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model)
 
-    with inject_scenario(
+    result = package_scenario(
         model,
         study.ssv_path,
         study.ssm_path,
         target_ssd=study.target_ssd,
-    ) as runtime:
-        assert runtime != model
-        assert (runtime / "resources" / "Scenario.ssv").is_file()
-        assert (runtime / "resources" / "test_baseline.ssm").is_file()
-        with SSD(runtime / "SystemStructure.ssd", mode="r") as ssd:
-            bindings = ssd.xml.system.parameter_bindings
-            assert len(bindings) == 1
-            binding = bindings[0]
-            assert isinstance(binding, ParameterBinding)
-            assert binding.source == "resources/Scenario.ssv"
-            assert binding.parameter_mapping is not None
-            assert binding.parameter_mapping.source == "resources/test_baseline.ssm"
-            assert binding.parameter_mapping.mapping is None
-        with SSV(runtime / "resources" / "Scenario.ssv", mode="r") as ssv:
-            assert {
-                parameter.name: parameter.attributes["value"]
-                for parameter in ssv.xml.parameters
-            } == {"height": "2.0", "k": "3.0"}
-        with SSM(runtime / "resources" / "test_baseline.ssm", mode="r") as ssm:
-            assert [
-                (mapping.source, mapping.target)
-                for mapping in ssm.xml.mappings
-            ] == [
-                ("height", "step.height"),
-                ("k", "gain.k"),
-            ]
+    )
 
-    assert not any(model.rglob("*.ssv"))
+    assert result == model
+    assert (model / "resources" / "Scenario.ssv").is_file()
+    assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        assert not ssd.xml.system.parameter_bindings
+        bindings = ssd.xml.system.parameter_bindings
+        assert len(bindings) == 1
+        binding = bindings[0]
+        assert isinstance(binding, ParameterBinding)
+        assert binding.source == "resources/Scenario.ssv"
+        assert binding.parameter_mapping is not None
+        assert binding.parameter_mapping.source == "resources/test_baseline.ssm"
+        assert binding.parameter_mapping.mapping is None
+    with SSV(model / "resources" / "Scenario.ssv", mode="r") as ssv:
+        assert {
+            parameter.name: parameter.attributes["value"]
+            for parameter in ssv.xml.parameters
+        } == {"height": "2.0", "k": "3.0"}
+    with SSM(model / "resources" / "test_baseline.ssm", mode="r") as ssm:
+        assert [
+            (mapping.source, mapping.target)
+            for mapping in ssm.xml.mappings
+        ] == [
+            ("height", "step.height"),
+            ("k", "gain.k"),
+        ]
+
+
+def test_package_scenario_rejects_model_with_root_bindings(tmp_path: Path) -> None:
+    descriptor = _write_scenario(tmp_path / "study")
+    study = read_study_descriptor(descriptor)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    package_scenario(model, study.ssv_path, study.ssm_path, target_ssd=study.target_ssd)
+
+    with pytest.raises(ValueError, match="already has root parameter bindings"):
+        package_scenario(
+            model,
+            study.ssv_path,
+            study.ssm_path,
+            target_ssd=study.target_ssd,
+        )
