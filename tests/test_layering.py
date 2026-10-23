@@ -11,6 +11,10 @@ FLOW_LAYER = "nodes"
 JUDGE_ALLOWED = ("nodes", "cli")
 AUTHORING_MUST_NOT_IMPORT = ("pyssp_vv",)
 
+#: The V&V modules the execution layer may compose: measurement and the
+#: stdlib-only evidence schema. Judgment and policy are not composable there.
+EXECUTE_MAY_IMPORT = ("pyssp_vv.measure", "pyssp_vv.evidence")
+
 #: Symbols that would mean a capability was reimplemented here.
 CAPABILITY_MARKERS = ("def compare(", "def judge(", "def passed(", "passed(")
 
@@ -79,6 +83,20 @@ def test_judgment_is_only_reachable_from_the_composition_layer():
     ]
     assert not violations, (
         "an execution-side module decides acceptability:\n" + "\n".join(violations)
+    )
+
+
+def test_execute_composes_measurement_without_reaching_judgment():
+    violations = [
+        f"{module} imports {name}"
+        for _path, module, imports in _walk()
+        if _layer(module) == "execute"
+        for name in imports
+        if name.startswith("pyssp_vv") and name not in EXECUTE_MAY_IMPORT
+    ]
+    assert not violations, (
+        "the execution layer imported a V&V module it must not compose:\n"
+        + "\n".join(violations)
     )
 
 
