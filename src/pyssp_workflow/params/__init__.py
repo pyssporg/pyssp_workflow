@@ -11,6 +11,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from pyssp_standard import SSM, SSV
+
 
 @dataclass(frozen=True)
 class Experiment:
@@ -84,8 +86,54 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
     )
 
 
+def _require(path: Path | None, kind: str, descriptor: StudyDescriptor) -> Path:
+    if path is None:
+        raise ValueError(f"Study descriptor '{descriptor.path}' names no scenario {kind}")
+    return path
+
+
+def scenario_values(descriptor: StudyDescriptor) -> dict[str, float]:
+    """The study scenario as ``{ssv member name: value}``.
+
+    Read-only: the SSV is opened, never rewritten. Raises ``ValueError`` when
+    the descriptor names no scenario SSV.
+    """
+    ssv_path = _require(descriptor.ssv_path, "SSV", descriptor)
+    with SSV(ssv_path, mode="r") as ssv:
+        return {
+            parameter.name: float(parameter.attributes["value"])
+            for parameter in ssv.xml.parameters
+        }
+
+
+def scenario_mappings(descriptor: StudyDescriptor) -> tuple[tuple[str, str], ...]:
+    """The study ``(member name, target)`` mapping pairs.
+
+    Read-only: the SSM is opened, never rewritten. Raises ``ValueError`` when
+    the descriptor names no scenario SSM.
+    """
+    ssm_path = _require(descriptor.ssm_path, "SSM", descriptor)
+    with SSM(ssm_path, mode="r") as ssm:
+        return tuple(
+            (mapping.source, mapping.target) for mapping in ssm.xml.mappings
+        )
+
+
+def scenario_targets(descriptor: StudyDescriptor) -> dict[str, float]:
+    """The study scenario keyed by the mapped SSP target name.
+
+    Read-only. Raises ``ValueError`` when the descriptor names no scenario
+    SSV or SSM; ``KeyError`` when a mapping names a member the SSV lacks.
+    """
+    values = scenario_values(descriptor)
+    return {target: values[source] for source, target in scenario_mappings(descriptor)}
+
+
 __all__ = [
     "Experiment",
     "StudyDescriptor",
     "read_study_descriptor",
+    "scenario_mappings",
+    "scenario_targets",
+    "scenario_values",
 ]
