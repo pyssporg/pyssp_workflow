@@ -28,10 +28,11 @@ class StudyDescriptor:
     sut: str
     target_ssd: str
     study: str
+    model_source: str | None
     experiment: Experiment
-    set_name: str
-    ssv_path: Path
-    ssm_path: Path
+    set_name: str | None
+    ssv_path: Path | None
+    ssm_path: Path | None
 
 
 def _resolve(base: Path, value: str) -> Path:
@@ -43,8 +44,16 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
     descriptor_path = Path(path)
     data = json.loads(descriptor_path.read_text(encoding="utf-8"))
     experiment_data = data["experiment"]
-    scenario = data["scenario"]
+    scenario = data.get("scenario")
     base = descriptor_path.parent
+    if scenario is None:
+        set_name: str | None = None
+        ssv_path: Path | None = None
+        ssm_path: Path | None = None
+    else:
+        set_name = str(scenario["set"])
+        ssv_path = _resolve(base, str(scenario["ssv"]))
+        ssm_path = _resolve(base, str(scenario["ssm"]))
     return StudyDescriptor(
         path=descriptor_path,
         model=str(data["model"]),
@@ -52,15 +61,20 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
         sut=str(data["sut"]),
         target_ssd=str(data.get("target_ssd", "SystemStructure.ssd")),
         study=str(data["study"]),
+        model_source=(
+            str(data["model_source"])
+            if data.get("model_source") is not None
+            else None
+        ),
         experiment=Experiment(
             name=str(experiment_data["name"]),
             start_time=float(experiment_data["start_time"]),
             stop_time=float(experiment_data["stop_time"]),
             step_size=float(experiment_data["step_size"]),
         ),
-        set_name=str(scenario["set"]),
-        ssv_path=_resolve(base, str(scenario["ssv"])),
-        ssm_path=_resolve(base, str(scenario["ssm"])),
+        set_name=set_name,
+        ssv_path=ssv_path,
+        ssm_path=ssm_path,
     )
 
 

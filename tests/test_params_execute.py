@@ -12,15 +12,21 @@ from pyssp_workflow.execute import package_scenario
 from pyssp_workflow.params import read_study_descriptor
 
 
-def _write_scenario(study_dir: Path) -> Path:
+def _write_scenario(
+    study_dir: Path,
+    *,
+    with_scenario: bool = True,
+    model_source: str | None = None,
+) -> Path:
     study_dir.mkdir()
-    with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
-        ssv.xml.name = "Scenario"
-        ssv.xml.add_parameter("height", ptype="Real", value=2.0)
-        ssv.xml.add_parameter("k", ptype="Real", value=3.0)
-    with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
-        ssm.xml.add_mapping("height", "step.height")
-        ssm.xml.add_mapping("k", "gain.k")
+    if with_scenario:
+        with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
+            ssv.xml.name = "Scenario"
+            ssv.xml.add_parameter("height", ptype="Real", value=2.0)
+            ssv.xml.add_parameter("k", ptype="Real", value=3.0)
+        with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
+            ssm.xml.add_mapping("height", "step.height")
+            ssm.xml.add_mapping("k", "gain.k")
     descriptor = {
         "model": "example",
         "composition": "System",
@@ -33,12 +39,15 @@ def _write_scenario(study_dir: Path) -> Path:
             "stop_time": 1.0,
             "step_size": 0.1,
         },
-        "scenario": {
+    }
+    if with_scenario:
+        descriptor["scenario"] = {
             "set": "Scenario",
             "ssv": "Scenario.ssv",
             "ssm": "test_baseline.ssm",
-        },
-    }
+        }
+    if model_source is not None:
+        descriptor["model_source"] = model_source
     path = study_dir / "study.json"
     path.write_text(json.dumps(descriptor), encoding="utf-8")
     return path
@@ -60,6 +69,33 @@ def test_read_study_descriptor_points_at_standard_artifacts(tmp_path: Path) -> N
     assert study.ssv_path == descriptor.parent / "Scenario.ssv"
     assert study.ssm_path == descriptor.parent / "test_baseline.ssm"
     assert study.experiment.step_size == 0.1
+
+
+def test_read_study_descriptor_without_scenario(tmp_path: Path) -> None:
+    descriptor = _write_scenario(tmp_path / "study", with_scenario=False)
+    study = read_study_descriptor(descriptor)
+
+    assert study.set_name is None
+    assert study.ssv_path is None
+    assert study.ssm_path is None
+    assert study.model_source is None
+    assert study.study == "test_baseline"
+    assert study.experiment.name == "baseline"
+    assert study.experiment.start_time == 0.0
+    assert study.experiment.stop_time == 1.0
+    assert study.experiment.step_size == 0.1
+
+
+def test_read_study_descriptor_records_model_source(tmp_path: Path) -> None:
+    descriptor = _write_scenario(
+        tmp_path / "study",
+        with_scenario=False,
+        model_source="models/ssp/example/ssp",
+    )
+    study = read_study_descriptor(descriptor)
+
+    assert study.model_source == "models/ssp/example/ssp"
+    assert study.set_name is None
 
 
 def test_package_scenario_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
