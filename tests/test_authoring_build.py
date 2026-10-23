@@ -14,10 +14,9 @@ from pyssp_workflow.authoring import (
     build_fixture,
     build_fmu_from_modelica,
     build_legacy_model,
-    build_studies,
-    run_fixture,
+    report_builds,
 )
-from pyssp_workflow.execute import package_nothing
+from pyssp_workflow.packaging import apply_external_ssv_ssm
 
 OMC = shutil.which("omc")
 
@@ -117,7 +116,7 @@ def _fixture_dir(tmp_path: Path) -> Path:
     return model_dir
 
 
-def test_build_fixture_runs_study_then_model_then_package(
+def test_build_fixture_runs_study_then_model_without_packaging(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     calls: list[str] = []
@@ -125,48 +124,68 @@ def test_build_fixture_runs_study_then_model_then_package(
     _stub_derivations(monkeypatch, calls, studies_seen)
     model_dir = _fixture_dir(tmp_path)
 
-    def package(model_build_dir, descriptor) -> None:
-        calls.append("package")
-        assert Path(model_build_dir).is_dir()
-        assert descriptor.study == "test_baseline"
-
-    output = build_fixture(
+    builds = build_fixture(
         model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        study="test_baseline",
-        package=package,
+        studies=("test_baseline",),
     )
 
-    assert calls == ["study", "model", "package"]
+    assert calls == ["study", "model"]
     assert studies_seen == ["test_baseline"]
-    assert output == (
-        tmp_path
-        / "artifacts"
-        / "models"
-        / "demo"
-        / "test_baseline"
-        / "model"
+    build = builds["test_baseline"]
+    assert build.model_name == "demo"
+    assert build.study == "test_baseline"
+    assert build.study_dir == (
+        tmp_path / "artifacts" / "studies" / "demo" / "test_baseline"
     )
+    assert build.model_dir == (
+        tmp_path / "artifacts" / "models" / "demo" / "test_baseline" / "model"
+    )
+    assert build.descriptor.study == "test_baseline"
+    assert not (build.model_dir / "resources").exists()
 
 
-def test_build_fixture_uses_package_scenario_by_default(
+def test_apply_external_ssv_ssm_packages_a_built_record(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _stub_derivations(monkeypatch, [])
     model_dir = _fixture_dir(tmp_path)
-
-    output = build_fixture(
+    builds = build_fixture(
         model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        study="test_baseline",
+        studies=("test_baseline",),
     )
 
+    apply_external_ssv_ssm(builds["test_baseline"])
+
+    output = builds["test_baseline"].model_dir
     assert (output / "resources" / "Scenario.ssv").is_file()
     assert (output / "resources" / "test_baseline.ssm").is_file()
+
+
+def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    studies_seen: list[str] = []
+    _stub_derivations(monkeypatch, calls, studies_seen)
+    model_dir = _fixture_dir(tmp_path)
+
+    builds = build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        studies=("test_baseline", "second"),
+    )
+
+    assert calls == ["study", "model", "study", "model"]
+    assert studies_seen == ["test_baseline", "second"]
+    assert sorted(builds) == ["second", "test_baseline"]
+    assert builds["second"].study == "second"
+    assert builds["second"].study_dir.name == "second"
 
 
 def test_artifacts_root_defaults_to_repo_root_and_is_never_the_cwd(
@@ -178,22 +197,16 @@ def test_artifacts_root_defaults_to_repo_root_and_is_never_the_cwd(
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
 
-    output = build_fixture(
+    builds = build_fixture(
         model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        study="test_baseline",
-        package=package_nothing,
+        studies=("test_baseline",),
     )
 
-    assert output == (
-        tmp_path
-        / "artifacts"
-        / "models"
-        / "demo"
-        / "test_baseline"
-        / "model"
+    assert builds["test_baseline"].model_dir == (
+        tmp_path / "artifacts" / "models" / "demo" / "test_baseline" / "model"
     )
     assert (tmp_path / "artifacts" / "studies" / "demo" / "test_baseline").is_dir()
 
@@ -205,60 +218,65 @@ def test_artifacts_root_is_honoured(
     model_dir = _fixture_dir(tmp_path)
     artifacts = tmp_path / "out"
 
-    output = build_fixture(
+    builds = build_fixture(
         model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        study="test_baseline",
+        studies=("test_baseline",),
         artifacts_root=artifacts,
-        package=package_nothing,
     )
 
-    assert output == artifacts / "models" / "demo" / "test_baseline" / "model"
+    assert builds["test_baseline"].model_dir == (
+        artifacts / "models" / "demo" / "test_baseline" / "model"
+    )
 
 
-def test_build_studies_keeps_the_per_study_package(
+def test_each_build_record_is_packaged_explicitly(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    calls: list[str] = []
-    _stub_derivations(monkeypatch, calls)
+    _stub_derivations(monkeypatch, [])
     model_dir = _fixture_dir(tmp_path)
-    seen: list[str] = []
 
-    def package(model_build_dir, descriptor) -> None:
-        seen.append(descriptor.study)
-
-    outputs = build_studies(
+    builds = build_fixture(
         model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline", authoring.StudyBuild("second", package)),
+        studies=("test_baseline", "second"),
     )
+    for build in builds.values():
+        apply_external_ssv_ssm(build)
 
-    assert sorted(outputs) == ["second", "test_baseline"]
+    for build in builds.values():
+        assert (build.model_dir / "resources" / "Scenario.ssv").is_file()
+        assert (build.model_dir / "resources" / "test_baseline.ssm").is_file()
 
 
-def test_run_fixture_prints_one_line_per_study(
+def test_report_builds_prints_one_line_per_study(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
     _stub_derivations(monkeypatch, [])
     model_dir = _fixture_dir(tmp_path)
 
-    status = run_fixture(
-        model_dir,
+    builds = build_fixture(
+        model_dir=model_dir,
         repo_root=tmp_path,
         model_name="demo",
+        composition="System",
         studies=("a", "b"),
-        package=package_nothing,
     )
+    status = report_builds(builds)
 
     assert status == 0
     lines = capsys.readouterr().out.splitlines()
     assert len(lines) == 2
-    assert lines[0].startswith(f"Built demo a: {tmp_path / 'artifacts'}")
-    assert lines[1].startswith(f"Built demo b: {tmp_path / 'artifacts'}")
+    assert lines[0] == (
+        f"Built demo a: {tmp_path / 'artifacts' / 'models' / 'demo' / 'a' / 'model'}"
+    )
+    assert lines[1] == (
+        f"Built demo b: {tmp_path / 'artifacts' / 'models' / 'demo' / 'b' / 'model'}"
+    )
 
 
 def _write_model_description(path: Path, interface_type: str) -> None:

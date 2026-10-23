@@ -35,7 +35,8 @@ surfaces and does not reach into producer internals.
 | `plan` | inert execution plans | stdlib, `pyssp_workflow` | `sequence_extensions`, `pyssp_vv.judge` |
 | `authoring` | SysML/SSD and fixture builds via external CLI and `omc` | stdlib, subprocess, `pyssp_standard` | `pyssp_vv`, `pyssp_sysml2` |
 | `build`, `params` | SSP assembly and parameter resolution | `pyssp_standard` adapter, `pyssp_vv.measure` if needed | `pyssp_vv.judge` |
-| `execute` | run one case in a child process | `pyssp_simulate` adapter | `pyssp_vv.judge` |
+| `packaging` | apply a study scenario to a built SSP | `pyssp_standard`, `authoring.FixtureBuild`, `params` | reimplement SSP assembly |
+| `execute` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
 | `report` | figures from a measurement | `pyssp_vv.measure.figures`, renderer extra | define what a figure shows |
 | `cli` | thin commands | all of the above | duplicate logic |
 

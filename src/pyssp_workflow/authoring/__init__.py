@@ -18,15 +18,26 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from zipfile import ZipFile
 
 from pyssp_standard import FMU, SSP, unpack_archive
 
-from pyssp_workflow.execute import PackageStep, StudyBuild, package_scenario
-from pyssp_workflow.params import read_study_descriptor
+from pyssp_workflow.params import StudyDescriptor, read_study_descriptor
 
 DEFAULT_TIMEOUT_SECONDS = 1800.0
+
+
+@dataclass(frozen=True)
+class FixtureBuild:
+    """One built study and its exported model SSP, before packaging."""
+
+    model_name: str
+    study: str
+    study_dir: Path
+    model_dir: Path
+    descriptor: StudyDescriptor
 
 
 def _pyssp_executable(pyssp: str | Path | None) -> str:
@@ -318,39 +329,31 @@ def _artifacts_root(repo_root: Path | str, artifacts_root: Path | str | None) ->
     )
 
 
-def build_fixture(
+def _build_one(
     *,
     model_dir: Path | str,
     repo_root: Path | str,
-    model_name: str,
-    composition: str,
+    model_name: str | None = None,
+    composition: str = "System",
     study: str,
     build_name: str = "model",
     artifacts_root: Path | str | None = None,
-    package: PackageStep | None = None,
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
-) -> Path:
-    """Build one study, its exported model SSP, and the packaged runnable SSP.
-
-    ``artifacts_root`` defaults to ``repo_root / "artifacts"``; it is never
-    discovered from the working directory. The study artifacts land in
-    ``<artifacts_root>/studies/<model>/<study>`` and the packaged SSP in
-    ``<artifacts_root>/models/<model>/<study>/<build_name>``. ``model_dir`` is
-    the fixture directory and is read-only.
-
-    ``package=None`` uses ``execute.package_scenario``.
-    """
+) -> FixtureBuild:
+    """Build one study and its exported model SSP; packaging is not applied."""
+    model = Path(model_dir)
+    name = model_name or model.name
     artifacts = _artifacts_root(repo_root, artifacts_root)
-    architecture_dir = Path(model_dir) / "architecture"
-    study_dir = artifacts / "studies" / model_name / study
-    model_build_dir = artifacts / "models" / model_name / study / build_name
+    architecture_dir = model / "architecture"
+    study_dir = artifacts / "studies" / name / study
+    model_build_dir = artifacts / "models" / name / study / build_name
 
     build_study(
         architecture_dir,
         study_dir,
         study,
-        model_name,
+        name,
         pyssp=pyssp,
     )
     build_model(
@@ -363,91 +366,59 @@ def build_fixture(
     )
 
     descriptor = read_study_descriptor(study_dir / "study.json")
-    if package is None:
-        package_scenario(model_build_dir, descriptor.ssv_path, descriptor.ssm_path)
-    else:
-        package(model_build_dir, descriptor)
+    return FixtureBuild(
+        model_name=name,
+        study=study,
+        study_dir=study_dir,
+        model_dir=model_build_dir,
+        descriptor=descriptor,
+    )
 
-    return model_build_dir
 
-
-def build_studies(
+def build_fixture(
     *,
     model_dir: Path | str,
     repo_root: Path | str,
-    model_name: str,
-    composition: str,
-    studies: Sequence[str | StudyBuild],
+    model_name: str | None = None,
+    composition: str = "System",
+    studies: Sequence[str],
     build_name: str = "model",
     artifacts_root: Path | str | None = None,
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
-) -> dict[str, Path]:
-    """Build one runnable SSP per study, keyed by study name.
+) -> dict[str, FixtureBuild]:
+    """Build one study and exported model SSP per study, keyed by study name.
 
-    Each study gets its own study artifacts and its own packaged model SSP.
-    A plain string entry uses the default scenario packaging.
+    ``artifacts_root`` defaults to ``repo_root / "artifacts"``; it is never
+    discovered from the working directory. Study artifacts land in
+    ``<artifacts_root>/studies/<model>/<study>`` and the model SSP in
+    ``<artifacts_root>/models/<model>/<study>/<build_name>``. ``model_dir`` is
+    the fixture directory and is read-only. Packaging is the caller's step.
     """
-    outputs: dict[str, Path] = {}
-    for entry in studies:
-        spec = entry if isinstance(entry, StudyBuild) else StudyBuild(entry)
-        outputs[spec.name] = build_fixture(
+    return {
+        study: _build_one(
             model_dir=model_dir,
             repo_root=repo_root,
             model_name=model_name,
             composition=composition,
-            study=spec.name,
+            study=study,
             build_name=build_name,
             artifacts_root=artifacts_root,
-            package=spec.package,
             validate_fmus=validate_fmus,
             pyssp=pyssp,
         )
-    return outputs
+        for study in studies
+    }
 
 
-def run_fixture(
-    model_dir: Path | str,
-    *,
-    repo_root: Path | str,
-    model_name: str | None = None,
-    composition: str = "System",
-    studies: Sequence[str | StudyBuild] = ("baseline",),
-    package: PackageStep | None = None,
-    validate_fmus: bool = True,
-    build_name: str = "model",
-    artifacts_root: Path | str | None = None,
-    pyssp: str | Path | None = None,
-) -> int:
-    """Build one fixture's studies from its directory and print each output.
-
-    This is the fixture entry point, not a general library function: it prints
-    one ``Built <model> <study>: <path>`` line per study and returns the
-    process exit code.
-    """
-    model = Path(model_dir)
-    name = model_name or model.name
-    entries = tuple(
-        StudyBuild(entry, package) if isinstance(entry, str) else entry
-        for entry in studies
-    )
-    outputs = build_studies(
-        model_dir=model,
-        repo_root=repo_root,
-        model_name=name,
-        composition=composition,
-        studies=entries,
-        build_name=build_name,
-        artifacts_root=artifacts_root,
-        validate_fmus=validate_fmus,
-        pyssp=pyssp,
-    )
-    for study, path in outputs.items():
-        print(f"Built {name} {study}: {path}")
+def report_builds(builds: dict[str, FixtureBuild]) -> int:
+    """Print one ``Built <model> <study>: <path>`` line per build; return 0."""
+    for build in builds.values():
+        print(f"Built {build.model_name} {build.study}: {build.model_dir}")
     return 0
 
 
-def run_legacy_fixture(
+def build_legacy_fixture(
     model_dir: Path | str,
     *,
     repo_root: Path | str,
@@ -456,8 +427,8 @@ def run_legacy_fixture(
     strip_resources: Sequence[str] | None = None,
     artifacts_root: Path | str | None = None,
     pyssp: str | Path | None = None,
-) -> int:
-    """Build one checked-in SSP body and print its output.
+) -> FixtureBuild:
+    """Build one checked-in SSP body and return its record; no packaging.
 
     The model's ``ssp_meta.source`` selects the checked-in body; the SysML
     study supplies only the experiment descriptor. ``model_dir`` is read-only.
@@ -489,14 +460,19 @@ def run_legacy_fixture(
             f"SSP source '{descriptor.model_source}' has no SystemStructure.ssd"
         )
 
-    output = build_legacy_model(
+    build_legacy_model(
         source_dir,
         model_build_dir,
         flatten=flatten,
         strip_resources=strip_resources,
     )
-    print(f"Built {name} {study}: {output}")
-    return 0
+    return FixtureBuild(
+        model_name=name,
+        study=study,
+        study_dir=study_dir,
+        model_dir=model_build_dir,
+        descriptor=descriptor,
+    )
 
 
 def _omc_executable(omc: str | Path | None) -> str:
@@ -631,15 +607,15 @@ def build_fmu_from_modelica(
 
 __all__ = [
     "DEFAULT_TIMEOUT_SECONDS",
+    "FixtureBuild",
     "build_fixture",
     "build_fmu_from_modelica",
+    "build_legacy_fixture",
     "build_legacy_model",
     "build_model",
-    "build_studies",
     "build_study",
     "derive_ssd_from_sysml",
     "derive_ssp_from_sysml",
     "derive_study_from_sysml",
-    "run_fixture",
-    "run_legacy_fixture",
+    "report_builds",
 ]

@@ -8,18 +8,19 @@ from pyssp_standard import SSD, SSM, SSV
 from pyssp_standard.ssd import ParameterBinding, Ssd1Component, System
 from pyssp_vv.evidence import read_metric_csv, summarize_rows
 
+from pyssp_workflow.authoring import FixtureBuild
 from pyssp_workflow.execute import (
     ComparisonRecord,
     ComparisonRequest,
     ResultRef,
-    StudyBuild,
-    apply_inline_components,
     compare_result_csvs,
-    package_external_target_named,
-    package_inline_root,
-    package_inline_with_mapping,
-    package_nothing,
-    package_scenario,
+)
+from pyssp_workflow.packaging import (
+    apply_external_ssv_ssm,
+    apply_inline_components,
+    apply_inline_root,
+    apply_inline_with_mapping,
+    apply_target_named_external,
 )
 from pyssp_workflow.params import (
     read_study_descriptor,
@@ -92,6 +93,16 @@ def _write_model(model_dir: Path, *, nested: bool = False) -> None:
         ssd.xml.system = System(name="System", elements=elements)
 
 
+def _fixture_build(model_dir: Path, descriptor) -> FixtureBuild:
+    return FixtureBuild(
+        model_name="example",
+        study=descriptor.study,
+        study_dir=descriptor.path.parent,
+        model_dir=model_dir,
+        descriptor=descriptor,
+    )
+
+
 def _inline_values(binding: ParameterBinding) -> dict[str, str]:
     assert binding.parameter_set is not None
     return {
@@ -138,20 +149,14 @@ def test_read_study_descriptor_records_model_source(tmp_path: Path) -> None:
     assert study.set_name is None
 
 
-def test_package_scenario_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
+def test_apply_external_ssv_ssm_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
     descriptor = _write_scenario(tmp_path / "study")
     study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model)
 
-    result = package_scenario(
-        model,
-        study.ssv_path,
-        study.ssm_path,
-        target_ssd=study.target_ssd,
-    )
+    apply_external_ssv_ssm(_fixture_build(model, study))
 
-    assert result == model
     assert (model / "resources" / "Scenario.ssv").is_file()
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
@@ -178,45 +183,34 @@ def test_package_scenario_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
         ]
 
 
-def test_package_scenario_rejects_model_with_root_bindings(tmp_path: Path) -> None:
+def test_apply_external_ssv_ssm_rejects_model_with_root_bindings(
+    tmp_path: Path,
+) -> None:
     descriptor = _write_scenario(tmp_path / "study")
     study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model)
+    build = _fixture_build(model, study)
 
-    package_scenario(model, study.ssv_path, study.ssm_path, target_ssd=study.target_ssd)
+    apply_external_ssv_ssm(build)
 
     with pytest.raises(ValueError, match="already has root parameter bindings"):
-        package_scenario(
-            model,
-            study.ssv_path,
-            study.ssm_path,
-            target_ssd=study.target_ssd,
-        )
+        apply_external_ssv_ssm(build)
 
 
-def test_study_build_records_the_packaging_form(tmp_path: Path) -> None:
-    build = StudyBuild("baseline", package_nothing)
-
-    assert build.name == "baseline"
-    assert build.package is package_nothing
-    assert StudyBuild("baseline").package is None
-
-
-def test_package_nothing_leaves_the_ssp_unchanged(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
+def test_apply_external_ssv_ssm_rejects_a_descriptor_without_a_scenario(
+    tmp_path: Path,
+) -> None:
+    descriptor = _write_scenario(tmp_path / "study", with_scenario=False)
     study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model)
-    before = (model / "SystemStructure.ssd").read_bytes()
 
-    assert package_nothing(model, study) is None
-
-    assert (model / "SystemStructure.ssd").read_bytes() == before
-    assert not (model / "resources").exists()
+    with pytest.raises(ValueError, match="names no scenario SSV"):
+        apply_external_ssv_ssm(_fixture_build(model, study))
 
 
-def test_package_inline_root_writes_one_target_named_root_binding(
+def test_apply_inline_root_writes_one_target_named_root_binding(
     tmp_path: Path,
 ) -> None:
     descriptor = _write_scenario(tmp_path / "study")
@@ -224,7 +218,7 @@ def test_package_inline_root_writes_one_target_named_root_binding(
     model = tmp_path / "model"
     _write_model(model)
 
-    package_inline_root(model, study)
+    apply_inline_root(_fixture_build(model, study))
 
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         bindings = ssd.xml.system.parameter_bindings
@@ -235,7 +229,7 @@ def test_package_inline_root_writes_one_target_named_root_binding(
     assert list((model / "resources").glob("*.ssv")) == []
 
 
-def test_package_external_target_named_writes_an_ssv_without_mapping(
+def test_apply_target_named_external_writes_an_ssv_without_mapping(
     tmp_path: Path,
 ) -> None:
     descriptor = _write_scenario(tmp_path / "study")
@@ -243,7 +237,7 @@ def test_package_external_target_named_writes_an_ssv_without_mapping(
     model = tmp_path / "model"
     _write_model(model)
 
-    package_external_target_named(model, study)
+    apply_target_named_external(_fixture_build(model, study))
 
     ssv_path = model / "resources" / "Scenario.ssv"
     assert ssv_path.is_file()
@@ -260,7 +254,7 @@ def test_package_external_target_named_writes_an_ssv_without_mapping(
         } == {"step.height": "2.0", "gain.k": "3.0"}
 
 
-def test_package_inline_with_mapping_adds_the_ssm_resource(
+def test_apply_inline_with_mapping_adds_the_ssm_resource(
     tmp_path: Path,
 ) -> None:
     descriptor = _write_scenario(tmp_path / "study")
@@ -268,7 +262,7 @@ def test_package_inline_with_mapping_adds_the_ssm_resource(
     model = tmp_path / "model"
     _write_model(model)
 
-    package_inline_with_mapping(model, study)
+    apply_inline_with_mapping(_fixture_build(model, study))
 
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
@@ -295,7 +289,7 @@ def test_apply_inline_components_writes_per_component_sets(tmp_path: Path) -> No
     model = tmp_path / "model"
     _write_model(model, nested=True)
 
-    apply_inline_components(model, study)
+    apply_inline_components(_fixture_build(model, study))
 
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         root = ssd.xml.system
@@ -326,7 +320,7 @@ def test_apply_inline_components_only_limits_the_components(tmp_path: Path) -> N
     model = tmp_path / "model"
     _write_model(model, nested=True)
 
-    apply_inline_components(model, study, only={"step"})
+    apply_inline_components(_fixture_build(model, study), only={"step"})
 
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         root = ssd.xml.system
@@ -348,7 +342,7 @@ def test_apply_inline_components_rejects_an_unknown_component(
     _write_model(model, nested=True)
 
     with pytest.raises(KeyError, match="missing"):
-        apply_inline_components(model, study)
+        apply_inline_components(_fixture_build(model, study))
 
 
 def test_scenario_readers_decode_the_standard_artifacts(tmp_path: Path) -> None:
