@@ -33,6 +33,7 @@ class StudyDescriptor:
     set_name: str | None
     ssv_path: Path | None
     ssm_path: Path | None
+    description: str | None = None
 
 
 def _resolve(base: Path, value: str) -> Path:
@@ -75,6 +76,11 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
         set_name=set_name,
         ssv_path=ssv_path,
         ssm_path=ssm_path,
+        description=(
+            str(data["description"])
+            if data.get("description") is not None
+            else None
+        ),
     )
 
 
