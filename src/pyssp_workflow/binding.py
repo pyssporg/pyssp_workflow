@@ -1,15 +1,21 @@
-"""Apply a study scenario to a built SSP as one root or component binding.
+"""Bind a scenario SSV to a built SSP in one of four placements.
 
-The study SSV and SSM are the standardized interchange artifacts. A binding
-copies them into the built SSP and adds parameter bindings, so the build output
-is a self-contained, runnable SSP. The scenario SSV and SSM are never rewritten.
+``mode`` chooses where the parameter set lives and ``mapping`` chooses whether
+the scenario keeps its SSV member names or is resolved to SSP target names
+through the SSM:
 
-``ExternalStudy`` is the external SSV+SSM form that a study descriptor names.
-The other records are the remaining SSP parameter-binding shapes a fixture may
-choose: one inline root set, an external SSV keyed by the mapped target names,
-an inline set with an external SSM resource, and per-component inline sets.
-Every record mutates the built SSP through ``pyssp_standard``; this module only
-decides which binding gets written.
+- ``external``/``attach``: copy the SSV and, when given, the SSM into
+  ``resources/`` and add an external root set that references the mapping.
+- ``external``/``flatten``: generate ``<set_name>.ssv`` keyed by target name
+  and add it as an external root set; no SSM is attached.
+- ``inline``/``attach``: write the SSV member names as one inline root set,
+  attach the SSM as a resource and point the set at its mapping.
+- ``inline``/``flatten``: write one inline root set keyed by target name, or
+  per-component sets when ``components`` is given.
+
+The SSV and SSM are standardized interchange artifacts and read-only inputs.
+Only ``build.model_dir`` is mutated, so the built SSP is self-contained and
+runnable.
 """
 
 from __future__ import annotations
@@ -17,83 +23,98 @@ from __future__ import annotations
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
-from pyssp_standard import SSP, SSV, ParameterMappingReference
+from pyssp_standard import SSM, SSP, SSV, ParameterMappingReference
 
 from pyssp_workflow.fixture import BuiltFixture
-from pyssp_workflow.study import read_scenario, scenario_targets
 
 
 @dataclass(frozen=True)
-class ExternalStudy:
-    """Copy the descriptor's standard SSV/SSM into the built SSP root."""
+class BindingResult:
+    """The binding written to ``ssp`` and where its inputs ended up."""
+
+    ssp: Path
+    mode: Literal["external", "inline"]
+    mapping: Literal["attach", "flatten"]
+    parameter_set: str
+    ssv_resource: str | None
+    ssm_resource: str | None
+    components: tuple[str, ...]
+    parameters: int
 
 
-@dataclass(frozen=True)
-class InlineRoot:
-    """Apply the scenario as one inline root set keyed by target name."""
+def bind(
+    build: BuiltFixture,
+    ssv: Path,
+    *,
+    set_name: str | None = None,
+    mode: Literal["external", "inline"] = "external",
+    ssm: Path | None = None,
+    mapping: Literal["attach", "flatten"] = "attach",
+    components: frozenset[str] | None = None,
+) -> BindingResult:
+    """Write one parameter binding to the built SSP and report what was written.
 
-
-@dataclass(frozen=True)
-class TargetNamedExternal:
-    """Apply the scenario as an external SSV whose names are the SSP targets."""
-
-
-@dataclass(frozen=True)
-class InlineComponents:
-    """Apply the scenario as inline parameter sets on the mapped components.
-
-    ``only`` limits application to the given component paths.
+    ``ssv`` is read once for its values and default name; ``set_name`` overrides
+    that name. ``ssm`` is read only when ``mapping="flatten"`` resolves member
+    names to targets. Only ``build.model_dir`` is mutated.
     """
+    if components is not None and mode != "inline":
+        raise ValueError("components is only valid with mode='inline'")
+    if components is not None and mapping != "flatten":
+        raise ValueError("components is only valid with mapping='flatten'")
 
-    only: frozenset[str] | None = None
+    default_name, values = _read_ssv(ssv)
+    name = set_name if set_name is not None else default_name
 
-
-@dataclass(frozen=True)
-class InlineWithMapping:
-    """Apply the scenario inline, with an external SSM resource for the mapping."""
-
-
-Binding = ExternalStudy | InlineRoot | TargetNamedExternal | InlineComponents | InlineWithMapping
-
-
-def apply_bindings(build: BuiltFixture, *bindings: Binding) -> None:
-    """Apply each binding to the built SSP in order, mutating it in place.
-
-    The built SSP is the artifact being produced, not an input. External SSV
-    and SSM files are read-only inputs.
-    """
-    for binding in bindings:
-        _apply(build, binding)
+    if mode == "external":
+        if mapping == "attach":
+            return _external_attach(build, ssv, ssm, name, values)
+        return _external_flatten(build, ssm, name, values)
+    if mapping == "attach":
+        if ssm is None:
+            raise ValueError(f"Study scenario '{ssv}' names no scenario SSM")
+        return _inline_attach(build, ssm, name, values)
+    return _inline_flatten(build, ssm, name, values, components)
 
 
-def _apply(build: BuiltFixture, binding: Binding) -> None:
-    match binding:
-        case ExternalStudy():
-            _apply_external_study(build)
-        case InlineRoot():
-            _apply_inline_root(build)
-        case TargetNamedExternal():
-            _apply_target_named_external(build)
-        case InlineComponents(only=only):
-            _apply_inline_components(build, only)
-        case InlineWithMapping():
-            _apply_inline_with_mapping(build)
-        case _:
-            raise TypeError(f"Unsupported binding: {binding!r}")
+def _read_ssv(path: Path) -> tuple[str, dict[str, float]]:
+    """The SSV's default set name and its values, read once."""
+    with SSV(path, mode="r") as ssv:
+        values = {
+            parameter.name: float(parameter.attributes["value"])
+            for parameter in ssv.xml.parameters
+        }
+        name = ssv.xml.name or path.stem
+    return name, values
 
 
-def _apply_external_study(build: BuiltFixture) -> None:
-    """Package the descriptor's standard SSV/SSM into the built SSP root.
+def _read_mappings(path: Path) -> tuple[tuple[str, str], ...]:
+    """The SSM's ``(member, target)`` pairs, read once."""
+    with SSM(path, mode="r") as ssm:
+        return tuple((mapping.source, mapping.target) for mapping in ssm.xml.mappings)
 
-    Raises ``ValueError`` when the descriptor names no scenario SSV.
-    """
+
+def _targets(values: dict[str, float], ssm: Path | None) -> dict[str, float]:
+    """Values keyed by target name; identity when there is no SSM."""
+    if ssm is None:
+        return dict(values)
+    return {
+        target: values[source]
+        for source, target in _read_mappings(ssm)
+    }
+
+
+def _external_attach(
+    build: BuiltFixture,
+    ssv: Path,
+    ssm: Path | None,
+    name: str,
+    values: dict[str, float],
+) -> BindingResult:
     root = build.model_dir
     descriptor = build.descriptor
-    if descriptor.ssv_path is None:
-        raise ValueError(f"Study descriptor '{descriptor.path}' names no scenario SSV")
-    ssv_path = descriptor.ssv_path
-    ssm_path = descriptor.ssm_path
     if not root.is_dir():
         raise NotADirectoryError(f"Exported SSP root is not a directory: {root}")
     if descriptor.target_ssd != "SystemStructure.ssd":
@@ -101,6 +122,7 @@ def _apply_external_study(build: BuiltFixture) -> None:
             "pyssp_standard.SSP.add_external_parameterset targets "
             f"SystemStructure.ssd, not '{descriptor.target_ssd}'"
         )
+    ssm_resource = ssm.name if ssm is not None else None
 
     with SSP(root, mode="a") as ssp:
         with ssp.system_structure() as ssd:
@@ -108,45 +130,86 @@ def _apply_external_study(build: BuiltFixture) -> None:
             if system is None:
                 raise ValueError(f"Runtime SSD has no system: {ssd.path}")
             if system.parameter_bindings:
-                raise ValueError(f"Exported SSP already has root parameter bindings: {ssd.path}")
-
+                raise ValueError(
+                    f"Exported SSP already has root parameter bindings: {ssd.path}"
+                )
         ssp.add_external_parameterset(
-            ssv_path,
-            mapping_path=ssm_path,
-            resource_name=ssv_path.name,
-            mapping_resource_name=ssm_path.name if ssm_path is not None else None,
+            ssv,
+            mapping_path=ssm,
+            resource_name=ssv.name,
+            mapping_resource_name=ssm_resource,
         )
 
+    return BindingResult(
+        ssp=root,
+        mode="external",
+        mapping="attach",
+        parameter_set=name,
+        ssv_resource=ssv.name,
+        ssm_resource=ssm_resource,
+        components=(),
+        parameters=len(values),
+    )
 
-def _apply_inline_root(build: BuiltFixture) -> None:
-    """Apply the scenario as one inline root parameter set keyed by target name.
 
-    Raises ``ValueError`` when the descriptor names no scenario.
-    """
-    descriptor = build.descriptor
-    values = scenario_targets(read_scenario(descriptor))
-    with SSP(Path(build.model_dir), mode="a") as ssp:
-        with ssp.system_structure() as ssd:
-            ssd.extend_system_parameterset(values, binding_name=descriptor.set_name)
-
-
-def _apply_target_named_external(build: BuiltFixture) -> None:
-    """Apply the scenario as an external SSV whose names are the SSP targets.
-
-    This is the no-mapping form: the parameter names are the hierarchical
-    targets, so the binding needs no ``.ssm``. Raises ``ValueError`` when the
-    descriptor names no scenario.
-    """
-    descriptor = build.descriptor
-    values = scenario_targets(read_scenario(descriptor))
-    with tempfile.TemporaryDirectory(prefix=f"{descriptor.set_name}_") as temp_dir:
-        ssv_path = Path(temp_dir) / f"{descriptor.set_name}.ssv"
+def _external_flatten(
+    build: BuiltFixture,
+    ssm: Path | None,
+    name: str,
+    values: dict[str, float],
+) -> BindingResult:
+    targets = _targets(values, ssm)
+    with tempfile.TemporaryDirectory(prefix=f"{name}_") as temp_dir:
+        ssv_path = Path(temp_dir) / f"{name}.ssv"
         with SSV(ssv_path, mode="w") as ssv:
-            ssv.xml.name = descriptor.set_name
-            for name, value in values.items():
-                ssv.xml.add_parameter(parname=name, ptype="Real", value=value)
-        with SSP(Path(build.model_dir), mode="a") as ssp:
+            ssv.xml.name = name
+            for target, value in targets.items():
+                ssv.xml.add_parameter(parname=target, ptype="Real", value=value)
+        with SSP(build.model_dir, mode="a") as ssp:
             ssp.add_external_parameterset(ssv_path)
+
+    return BindingResult(
+        ssp=build.model_dir,
+        mode="external",
+        mapping="flatten",
+        parameter_set=name,
+        ssv_resource=f"{name}.ssv",
+        ssm_resource=None,
+        components=(),
+        parameters=len(targets),
+    )
+
+
+def _inline_attach(
+    build: BuiltFixture,
+    ssm: Path,
+    name: str,
+    values: dict[str, float],
+) -> BindingResult:
+    mapping_name = ssm.name
+    with SSP(build.model_dir, mode="a") as ssp:
+        with ssp.system_structure() as ssd:
+            ssd.extend_system_parameterset(values, binding_name=name)
+            binding = next(
+                candidate
+                for candidate in ssd.xml.system.parameter_bindings
+                if candidate.source is None and candidate.parameter_set is not None
+            )
+            binding.parameter_mapping = ParameterMappingReference(
+                source=f"resources/{mapping_name}"
+            )
+        ssp.add_resource(ssm)
+
+    return BindingResult(
+        ssp=build.model_dir,
+        mode="inline",
+        mapping="attach",
+        parameter_set=name,
+        ssv_resource=None,
+        ssm_resource=mapping_name,
+        components=(),
+        parameters=len(values),
+    )
 
 
 def _resolve_system(root_system, path_parts: list[str]):
@@ -162,59 +225,54 @@ def _resolve_system(root_system, path_parts: list[str]):
     return system
 
 
-def _apply_inline_components(
+def _inline_flatten(
     build: BuiltFixture,
-    only: frozenset[str] | None,
-) -> None:
-    """Apply the scenario as inline parameter sets on the mapped components.
+    ssm: Path | None,
+    name: str,
+    values: dict[str, float],
+    components: frozenset[str] | None,
+) -> BindingResult:
+    targets = _targets(values, ssm)
+    if components is None:
+        with SSP(build.model_dir, mode="a") as ssp:
+            with ssp.system_structure() as ssd:
+                ssd.extend_system_parameterset(targets, binding_name=name)
+        return BindingResult(
+            ssp=build.model_dir,
+            mode="inline",
+            mapping="flatten",
+            parameter_set=name,
+            ssv_resource=None,
+            ssm_resource=None,
+            components=(),
+            parameters=len(targets),
+        )
 
-    Each mapped target is ``<component path>.<parameter>``; the component path
-    may cross nested systems. Raises ``ValueError`` when the descriptor names
-    no scenario and ``KeyError`` for a component path the SSP does not contain.
-    """
-    targets = scenario_targets(read_scenario(build.descriptor))
-    with SSP(Path(build.model_dir), mode="a") as ssp:
+    written: set[str] = set()
+    parameters = 0
+    with SSP(build.model_dir, mode="a") as ssp:
         with ssp.system_structure() as ssd:
             root = ssd.xml.system
             for target, value in targets.items():
                 *component_path, parameter = target.split(".")
                 component_name = ".".join(component_path)
-                if only is not None and component_name not in only:
+                if component_name not in components:
                     continue
                 component = _resolve_system(root, component_path)
                 component.extend_inline_parameterset({parameter: value})
+                written.add(component_name)
+                parameters += 1
+
+    return BindingResult(
+        ssp=build.model_dir,
+        mode="inline",
+        mapping="flatten",
+        parameter_set=name,
+        ssv_resource=None,
+        ssm_resource=None,
+        components=tuple(sorted(written)),
+        parameters=parameters,
+    )
 
 
-def _apply_inline_with_mapping(build: BuiltFixture) -> None:
-    """Apply the scenario inline, with an external SSM resource for the mapping.
-
-    Raises ``ValueError`` when the descriptor names no scenario or no SSM.
-    """
-    descriptor = build.descriptor
-    values = dict(read_scenario(descriptor).values)
-    if descriptor.ssm_path is None:
-        raise ValueError(f"Study descriptor '{descriptor.path}' names no scenario SSM")
-    mapping_name = descriptor.ssm_path.name
-    with SSP(Path(build.model_dir), mode="a") as ssp:
-        with ssp.system_structure() as ssd:
-            ssd.extend_system_parameterset(values, binding_name=descriptor.set_name)
-            binding = next(
-                candidate
-                for candidate in ssd.xml.system.parameter_bindings
-                if candidate.source is None and candidate.parameter_set is not None
-            )
-            binding.parameter_mapping = ParameterMappingReference(
-                source=f"resources/{mapping_name}"
-            )
-        ssp.add_resource(descriptor.ssm_path)
-
-
-__all__ = [
-    "Binding",
-    "ExternalStudy",
-    "InlineComponents",
-    "InlineRoot",
-    "InlineWithMapping",
-    "TargetNamedExternal",
-    "apply_bindings",
-]
+__all__ = ["BindingResult", "bind"]

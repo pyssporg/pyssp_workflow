@@ -42,7 +42,7 @@ flow engine.
 | Module | Surface |
 | --- | --- |
 | `authoring` | SysML derivation through the `pyssp` CLI, study/model/fixture builds, legacy checked-in SSP builds, Modelica FMU build, build reporting |
-| `binding` | `Binding` records (`ExternalStudy`, `InlineRoot`, `TargetNamedExternal`, `InlineComponents`, `InlineWithMapping`) and `apply_bindings`, which mutates a built SSP in place |
+| `binding` | `bind`, which writes one scenario binding into a built SSP and returns a `BindingResult` |
 | `compare` | `ResultRef`, `ComparisonRequest`, `ComparisonRecord`, and `compare_csvs` |
 | `study` | `Experiment`, `StudyDescriptor`, `read_study_descriptor`, `Scenario`, `read_scenario`, `scenario_targets` |
 | `fixture` | `BuiltFixture` and the `artifacts_root`, `study_dir`, and `model_dir` path helpers |
@@ -52,6 +52,26 @@ flow engine.
 artifacts by path; both return plain records. `binding` reads the scenario SSV
 and SSM as read-only inputs. Measurement and judgment stay in `pyssp_vv`,
 simulation in `pyssp_simulate`, and SSP assembly in `pyssp_standard`.
+
+```text
+bind(build, ssv, *, set_name=None, mode="external"|"inline", ssm=None,
+     mapping="attach"|"flatten", components=None) -> BindingResult
+```
+
+`mode` places the parameter set externally or inline; `mapping` keeps the SSV
+member names (`attach`) or resolves them to SSP target names through the
+optional SSM (`flatten`). The four placements are external attached (SSV and,
+when given, SSM copied as resources), external flattened (generated
+target-keyed SSV), inline attached (root set plus attached mapping), and inline
+flattened (root set, or per-component sets when `components` is given).
+`BindingResult` reports the SSP, mode, mapping, parameter set, resources,
+written components, and parameter count.
+
+```python
+from pyssp_workflow.binding import bind
+
+result = bind(build, scenario_ssv, mode="inline", mapping="flatten", ssm=scenario_ssm)
+```
 
 ## Install
 

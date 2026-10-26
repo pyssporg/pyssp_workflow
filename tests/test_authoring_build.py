@@ -18,7 +18,7 @@ from pyssp_workflow.authoring import (
     report_builds,
 )
 from pyssp_workflow.authoring import build as authoring_build
-from pyssp_workflow.binding import ExternalStudy, apply_bindings
+from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
 
 OMC = shutil.which("omc")
@@ -151,7 +151,7 @@ def test_build_fixture_runs_study_then_model_without_packaging(
     assert not (build.model_dir / "resources").exists()
 
 
-def test_apply_external_ssv_ssm_packages_a_built_record(
+def test_bind_external_attach_packages_a_built_record(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _stub_derivations(monkeypatch, [])
@@ -164,7 +164,8 @@ def test_apply_external_ssv_ssm_packages_a_built_record(
         studies=("test_baseline",),
     )
 
-    apply_bindings(builds["test_baseline"], ExternalStudy())
+    build = builds["test_baseline"]
+    bind(build, build.descriptor.ssv_path, ssm=build.descriptor.ssm_path)
 
     output = builds["test_baseline"].model_dir
     assert (output / "resources" / "Scenario.ssv").is_file()
@@ -250,7 +251,7 @@ def test_each_build_record_is_packaged_explicitly(
         studies=("test_baseline", "second"),
     )
     for build in builds.values():
-        apply_bindings(build, ExternalStudy())
+        bind(build, build.descriptor.ssv_path, ssm=build.descriptor.ssm_path)
 
     for build in builds.values():
         assert (build.model_dir / "resources" / "Scenario.ssv").is_file()

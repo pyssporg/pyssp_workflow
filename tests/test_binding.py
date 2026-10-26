@@ -7,16 +7,9 @@ import pytest
 from pyssp_standard import SSD, SSM, SSV
 from pyssp_standard.ssd import ParameterBinding, Ssd1Component, System
 
-from pyssp_workflow.binding import (
-    ExternalStudy,
-    InlineComponents,
-    InlineRoot,
-    InlineWithMapping,
-    TargetNamedExternal,
-    apply_bindings,
-)
+from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
-from pyssp_workflow.study import read_study_descriptor
+from pyssp_workflow.study import StudyDescriptor, read_study_descriptor
 
 
 def _write_scenario(
@@ -25,6 +18,7 @@ def _write_scenario(
     with_scenario: bool = True,
     values: dict[str, float] | None = None,
     mappings: tuple[tuple[str, str], ...] | None = None,
+    target_ssd: str = "SystemStructure.ssd",
 ) -> Path:
     study_dir.mkdir()
     values = values or {"height": 2.0, "k": 3.0}
@@ -41,7 +35,7 @@ def _write_scenario(
         "model": "example",
         "composition": "System",
         "sut": "sut",
-        "target_ssd": "SystemStructure.ssd",
+        "target_ssd": target_ssd,
         "study": "test_baseline",
         "experiment": {
             "name": "baseline",
@@ -79,7 +73,7 @@ def _write_model(model_dir: Path, *, nested: bool = False) -> None:
         ssd.xml.system = System(name="System", elements=elements)
 
 
-def _fixture_build(model_dir: Path, descriptor) -> BuiltFixture:
+def _fixture_build(model_dir: Path, descriptor: StudyDescriptor) -> BuiltFixture:
     return BuiltFixture(
         model_name="example",
         study=descriptor.study,
@@ -87,6 +81,17 @@ def _fixture_build(model_dir: Path, descriptor) -> BuiltFixture:
         model_dir=model_dir,
         descriptor=descriptor,
     )
+
+
+def _study(
+    tmp_path: Path,
+    **scenario_kwargs,
+) -> tuple[StudyDescriptor, Path, Path]:
+    descriptor = _write_scenario(tmp_path / "study", **scenario_kwargs)
+    study = read_study_descriptor(descriptor)
+    assert study.ssv_path is not None
+    assert study.ssm_path is not None
+    return study, study.ssv_path, study.ssm_path
 
 
 def _inline_values(binding: ParameterBinding) -> dict[str, str]:
@@ -97,14 +102,30 @@ def _inline_values(binding: ParameterBinding) -> dict[str, str]:
     }
 
 
-def test_external_study_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
+def _root_values(model_dir: Path) -> dict[str, str]:
+    with SSD(model_dir / "SystemStructure.ssd", mode="r") as ssd:
+        bindings = ssd.xml.system.parameter_bindings
+        assert len(bindings) == 1
+        return _inline_values(bindings[0])
+
+
+def test_external_attach_copies_the_ssv_and_ssm_and_maps_them(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    apply_bindings(_fixture_build(model, study), ExternalStudy())
+    result = bind(_fixture_build(model, study), ssv, ssm=ssm)
 
+    assert result.ssp == model
+    assert result.mode == "external"
+    assert result.mapping == "attach"
+    assert result.parameter_set == "Scenario"
+    assert result.ssv_resource == "Scenario.ssv"
+    assert result.ssm_resource == "test_baseline.ssm"
+    assert result.components == ()
+    assert result.parameters == 2
     assert (model / "resources" / "Scenario.ssv").is_file()
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
@@ -131,100 +152,115 @@ def test_external_study_merges_standard_ssv_and_ssm(tmp_path: Path) -> None:
         ]
 
 
-def test_external_study_rejects_model_with_root_bindings(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
-    model = tmp_path / "model"
-    _write_model(model)
-    build = _fixture_build(model, study)
-
-    apply_bindings(build, ExternalStudy())
-
-    with pytest.raises(ValueError, match="already has root parameter bindings"):
-        apply_bindings(build, ExternalStudy())
-
-
-def test_apply_bindings_applies_each_binding_before_a_later_failure(
+def test_external_attach_without_ssm_leaves_the_mapping_unset(
     tmp_path: Path,
 ) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
+    study, ssv, _ = _study(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    with pytest.raises(ValueError, match="already has root parameter bindings"):
-        apply_bindings(_fixture_build(model, study), ExternalStudy(), ExternalStudy())
+    result = bind(_fixture_build(model, study), ssv)
 
-    with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        assert len(ssd.xml.system.parameter_bindings) == 1
-
-
-def test_external_study_rejects_a_descriptor_without_a_scenario(
-    tmp_path: Path,
-) -> None:
-    descriptor = _write_scenario(tmp_path / "study", with_scenario=False)
-    study = read_study_descriptor(descriptor)
-    model = tmp_path / "model"
-    _write_model(model)
-
-    with pytest.raises(ValueError, match="names no scenario SSV"):
-        apply_bindings(_fixture_build(model, study), ExternalStudy())
-
-
-def test_inline_root_writes_one_target_named_root_binding(
-    tmp_path: Path,
-) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
-    model = tmp_path / "model"
-    _write_model(model)
-
-    apply_bindings(_fixture_build(model, study), InlineRoot())
-
+    assert result.ssv_resource == "Scenario.ssv"
+    assert result.ssm_resource is None
+    assert result.parameters == 2
+    assert (model / "resources" / "Scenario.ssv").is_file()
+    assert list((model / "resources").glob("*.ssm")) == []
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         bindings = ssd.xml.system.parameter_bindings
         assert len(bindings) == 1
-        binding = bindings[0]
-        assert binding.source is None
-        assert _inline_values(binding) == {"step.height": "2.0", "gain.k": "3.0"}
-    assert list((model / "resources").glob("*.ssv")) == []
+        assert bindings[0].source == "resources/Scenario.ssv"
+        assert bindings[0].parameter_mapping is None
 
 
-def test_target_named_external_writes_an_ssv_without_mapping(
-    tmp_path: Path,
-) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
+def test_external_flatten_writes_a_target_named_ssv(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    apply_bindings(_fixture_build(model, study), TargetNamedExternal())
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        ssm=ssm,
+        mapping="flatten",
+    )
 
-    ssv_path = model / "resources" / "Scenario.ssv"
-    assert ssv_path.is_file()
+    assert result.mode == "external"
+    assert result.mapping == "flatten"
+    assert result.parameter_set == "Scenario"
+    assert result.ssv_resource == "Scenario.ssv"
+    assert result.ssm_resource is None
+    assert result.components == ()
+    assert result.parameters == 2
+    assert list((model / "resources").glob("*.ssm")) == []
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         bindings = ssd.xml.system.parameter_bindings
         assert len(bindings) == 1
-        binding = bindings[0]
-        assert binding.source == "resources/Scenario.ssv"
-        assert binding.parameter_mapping is None
-    with SSV(ssv_path, mode="r") as ssv:
+        assert bindings[0].source == "resources/Scenario.ssv"
+        assert bindings[0].parameter_mapping is None
+    with SSV(model / "resources" / "Scenario.ssv", mode="r") as generated:
+        assert generated.xml.name == "Scenario"
         assert {
             parameter.name: parameter.attributes["value"]
-            for parameter in ssv.xml.parameters
+            for parameter in generated.xml.parameters
         } == {"step.height": "2.0", "gain.k": "3.0"}
 
 
-def test_inline_with_mapping_adds_the_ssm_resource(
-    tmp_path: Path,
-) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
-    study = read_study_descriptor(descriptor)
+def test_external_flatten_uses_the_ssv_name_by_default(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    apply_bindings(_fixture_build(model, study), InlineWithMapping())
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        ssm=ssm,
+        mapping="flatten",
+    )
 
+    assert result.parameter_set == "Scenario"
+    assert result.ssv_resource == "Scenario.ssv"
+
+
+def test_external_flatten_honours_an_explicit_set_name(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        ssm=ssm,
+        set_name="Calibration",
+        mapping="flatten",
+    )
+
+    assert result.parameter_set == "Calibration"
+    assert result.ssv_resource == "Calibration.ssv"
+    assert (model / "resources" / "Calibration.ssv").is_file()
+    with SSV(model / "resources" / "Calibration.ssv", mode="r") as generated:
+        assert generated.xml.name == "Calibration"
+
+
+def test_inline_attach_writes_member_named_values(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+    )
+
+    assert result.mode == "inline"
+    assert result.mapping == "attach"
+    assert result.parameter_set == "Scenario"
+    assert result.ssv_resource is None
+    assert result.ssm_resource == "test_baseline.ssm"
+    assert result.components == ()
+    assert result.parameters == 2
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         bindings = ssd.xml.system.parameter_bindings
@@ -236,9 +272,66 @@ def test_inline_with_mapping_adds_the_ssm_resource(
         assert _inline_values(binding) == {"height": "2.0", "k": "3.0"}
 
 
-def test_inline_components_writes_per_component_sets(tmp_path: Path) -> None:
-    descriptor = _write_scenario(
-        tmp_path / "study",
+def test_inline_attach_requires_an_ssm(tmp_path: Path) -> None:
+    study, ssv, _ = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(ValueError, match="names no scenario SSM"):
+        bind(_fixture_build(model, study), ssv, mode="inline")
+
+
+def test_inline_flatten_writes_a_target_named_root_set(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+        mapping="flatten",
+    )
+
+    assert result.mode == "inline"
+    assert result.mapping == "flatten"
+    assert result.parameter_set == "Scenario"
+    assert result.ssv_resource is None
+    assert result.ssm_resource is None
+    assert result.components == ()
+    assert result.parameters == 2
+    assert not (model / "resources" / "test_baseline.ssm").exists()
+    assert _root_values(model) == {"step.height": "2.0", "gain.k": "3.0"}
+
+
+def test_attach_keeps_member_names_while_flatten_uses_target_names(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    attached = tmp_path / "attached"
+    _write_model(attached)
+    flattened = tmp_path / "flattened"
+    _write_model(flattened)
+
+    bind(_fixture_build(attached, study), ssv, mode="inline", ssm=ssm)
+    bind(
+        _fixture_build(flattened, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+        mapping="flatten",
+    )
+
+    assert _root_values(attached) == {"height": "2.0", "k": "3.0"}
+    assert _root_values(flattened) == {"step.height": "2.0", "gain.k": "3.0"}
+
+
+def test_inline_flatten_components_writes_only_listed_components(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(
+        tmp_path,
         mappings=(
             ("height", "step.height"),
             ("k", "inner.gain.k"),
@@ -246,80 +339,28 @@ def test_inline_components_writes_per_component_sets(tmp_path: Path) -> None:
         ),
         values={"height": 2.0, "k": 3.0, "amp": 4.0},
     )
-    study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model, nested=True)
 
-    apply_bindings(_fixture_build(model, study), InlineComponents())
+    result = bind(
+        _fixture_build(model, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+        mapping="flatten",
+        components=frozenset({"step", "inner.gain"}),
+    )
 
+    assert result.parameter_set == "Scenario"
+    assert result.components == ("inner.gain", "step")
+    assert result.parameters == 2
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
         root = ssd.xml.system
         step = next(element for element in root.elements if element.name == "step")
         inner = next(element for element in root.elements if element.name == "inner")
         gain = next(element for element in inner.elements if element.name == "gain")
         sine = next(element for element in inner.elements if element.name == "sine")
-        assert [_inline_values(binding) for binding in step.parameter_bindings] == [
-            {"height": "2.0"}
-        ]
-        assert [_inline_values(binding) for binding in gain.parameter_bindings] == [
-            {"k": "3.0"}
-        ]
-        assert [_inline_values(binding) for binding in sine.parameter_bindings] == [
-            {"amplitude": "4.0"}
-        ]
-
-
-def test_inline_components_only_limits_the_components(tmp_path: Path) -> None:
-    descriptor = _write_scenario(
-        tmp_path / "study",
-        mappings=(
-            ("height", "step.height"),
-            ("k", "inner.gain.k"),
-        ),
-    )
-    study = read_study_descriptor(descriptor)
-    model = tmp_path / "model"
-    _write_model(model, nested=True)
-
-    apply_bindings(
-        _fixture_build(model, study),
-        InlineComponents(only=frozenset({"step"})),
-    )
-
-    with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        root = ssd.xml.system
-        step = next(element for element in root.elements if element.name == "step")
-        inner = next(element for element in root.elements if element.name == "inner")
-        assert step.parameter_bindings
-        assert inner.parameter_bindings == []
-
-
-def test_apply_bindings_applies_disjoint_component_bindings_in_order(
-    tmp_path: Path,
-) -> None:
-    descriptor = _write_scenario(
-        tmp_path / "study",
-        mappings=(
-            ("height", "step.height"),
-            ("k", "inner.gain.k"),
-        ),
-    )
-    study = read_study_descriptor(descriptor)
-    model = tmp_path / "model"
-    _write_model(model, nested=True)
-
-    apply_bindings(
-        _fixture_build(model, study),
-        InlineComponents(only=frozenset({"step"})),
-        InlineComponents(only=frozenset({"inner.gain"})),
-    )
-
-    with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        root = ssd.xml.system
-        step = next(element for element in root.elements if element.name == "step")
-        inner = next(element for element in root.elements if element.name == "inner")
-        gain = next(element for element in inner.elements if element.name == "gain")
-        sine = next(element for element in inner.elements if element.name == "sine")
+        assert root.parameter_bindings == []
         assert [_inline_values(binding) for binding in step.parameter_bindings] == [
             {"height": "2.0"}
         ]
@@ -329,16 +370,102 @@ def test_apply_bindings_applies_disjoint_component_bindings_in_order(
         assert sine.parameter_bindings == []
 
 
-def test_inline_components_rejects_an_unknown_component(
+def test_inline_flatten_components_rejects_an_unknown_component(
     tmp_path: Path,
 ) -> None:
-    descriptor = _write_scenario(
-        tmp_path / "study",
+    study, ssv, ssm = _study(
+        tmp_path,
         mappings=(("height", "missing.value"),),
     )
-    study = read_study_descriptor(descriptor)
     model = tmp_path / "model"
     _write_model(model, nested=True)
 
     with pytest.raises(KeyError, match="missing"):
-        apply_bindings(_fixture_build(model, study), InlineComponents())
+        bind(
+            _fixture_build(model, study),
+            ssv,
+            mode="inline",
+            ssm=ssm,
+            mapping="flatten",
+            components=frozenset({"missing"}),
+        )
+
+
+def test_components_are_rejected_with_external_mode(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(ValueError, match="only valid with mode='inline'"):
+        bind(
+            _fixture_build(model, study),
+            ssv,
+            ssm=ssm,
+            mapping="flatten",
+            components=frozenset({"step"}),
+        )
+
+
+def test_components_are_rejected_with_attach(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(ValueError, match="only valid with mapping='flatten'"):
+        bind(
+            _fixture_build(model, study),
+            ssv,
+            mode="inline",
+            ssm=ssm,
+            components=frozenset({"step"}),
+        )
+
+
+def test_external_attach_rejects_a_non_system_structure_target(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(tmp_path, target_ssd="ModelStructure.ssd")
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(ValueError, match="SystemStructure.ssd"):
+        bind(_fixture_build(model, study), ssv, ssm=ssm)
+
+
+def test_external_attach_rejects_a_model_with_root_bindings(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+    build = _fixture_build(model, study)
+
+    bind(build, ssv, ssm=ssm)
+
+    with pytest.raises(ValueError, match="already has root parameter bindings"):
+        bind(build, ssv, ssm=ssm)
+
+
+def test_external_attach_requires_an_exported_ssp_root(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    build = _fixture_build(tmp_path / "missing", study)
+
+    with pytest.raises(NotADirectoryError, match="not a directory"):
+        bind(build, ssv, ssm=ssm)
+
+
+def test_a_mapping_must_name_a_member_the_ssv_has(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(
+        tmp_path,
+        mappings=(("unknown", "step.height"),),
+    )
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(KeyError, match="unknown"):
+        bind(
+            _fixture_build(model, study),
+            ssv,
+            ssm=ssm,
+            mapping="flatten",
+        )

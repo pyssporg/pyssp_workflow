@@ -15,7 +15,7 @@ It does **not** contain the core of any of those capabilities.
 | Belongs here | Belongs elsewhere |
 | --- | --- |
 | node wrappers and scheduling policy | metrics and criteria (`pyssp_vv`) |
-| study, binding, and comparison records as plain data | engine calls (`pyssp_simulate`) |
+| study records, binding results, and comparison records as plain data | engine calls (`pyssp_simulate`) |
 | artifact paths and ownership | SSP XML (`pyssp_standard`) |
 | adapter calls to external CLIs | SysML conversion (`pyssp_sysml2`) |
 

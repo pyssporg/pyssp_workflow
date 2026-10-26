@@ -34,7 +34,7 @@ surfaces and does not reach into producer internals.
 | --- | --- | --- | --- |
 | `nodes` | scheduling policy over domain functions | `sequence_extensions`, every internal module, all of `pyssp_vv` | implement measurement or judgment |
 | `authoring` | SysML derivation, study and fixture builds, Modelica FMU build | stdlib, subprocess, `pyssp_standard`, `fixture`, `study` | `pyssp_vv`, `pyssp_sysml2` |
-| `binding` | apply binding records that write a study scenario into a built SSP | `pyssp_standard`, `fixture`, `study` | `pyssp_vv`, reimplement SSP assembly |
+| `binding` | `bind` writes one scenario binding, chosen by `mode`/`mapping`/`components`, into a built SSP and returns a `BindingResult` | `pyssp_standard`, `fixture` | `pyssp_vv`, `study`, reimplement SSP assembly |
 | `compare` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
 | `fixture` | `BuiltFixture` record and artifact path helpers | `study` | perform a build or read a scenario |
 | `study` | study descriptor and standardized scenario artifacts as plain data | `pyssp_standard` | `pyssp_vv`, rewrite an SSV or SSM |
