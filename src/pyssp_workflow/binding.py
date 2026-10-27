@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from pyssp_standard import SSM, SSP, SSV, Parameter, ParameterBinding
+from pyssp_standard import SSM, SSP, SSV, Parameter
 
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -66,6 +66,9 @@ def bind(
     with SSV(ssv, mode="r") as document:
         name = set_name if set_name is not None else document.name or ssv.stem
         values = document.parameters_by_name()
+        # Raw list length: duplicates stay in an attached SSV, while
+        # ``parameters_by_name`` would collapse them.
+        parameter_count = len(document.xml.parameters)
 
     if components is not None:
         return _bind_components(root, ssm, name, values, components)
@@ -84,6 +87,11 @@ def bind(
             resolve_mapping=mapping == "flatten", name=set_name,
         )
 
+    if mapping == "flatten" and ssm is not None:
+        # The written set holds the mapping targets rather than the source names.
+        with SSM(ssm, mode="r") as document:
+            parameter_count = len(document.resolve(values))
+
     reference = binding.parameter_mapping
     return BindingResult(
         ssp=root,
@@ -93,7 +101,7 @@ def bind(
         ssv_resource=_resource_name(binding.source),
         ssm_resource=_resource_name(reference.source if reference else None),
         components=(),
-        parameters=_parameter_count(root, binding),
+        parameters=parameter_count,
     )
 
 
@@ -137,14 +145,6 @@ def _bind_components(
 def _resource_name(source: str | None) -> str | None:
     """The bare resource name behind a binding reference, if there is one."""
     return Path(source).name if source is not None else None
-
-
-def _parameter_count(root: Path, binding: ParameterBinding) -> int:
-    """Count the parameters the binding addresses, inline or through a resource."""
-    if binding.parameter_set is not None:
-        return len(binding.parameter_set.parameters)
-    with SSV(root / binding.source, mode="r") as written:
-        return len(written.xml.parameters)
 
 
 __all__ = ["BindingResult", "bind"]

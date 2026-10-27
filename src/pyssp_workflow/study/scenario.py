@@ -37,8 +37,8 @@ def read_scenario(descriptor: StudyDescriptor) -> Scenario:
         )
     with SSV(descriptor.ssv_path, mode="r") as ssv:
         values = {
-            parameter.name: float(parameter.attributes["value"])
-            for parameter in ssv.xml.parameters
+            name: float(parameter.attributes["value"])
+            for name, parameter in ssv.parameters_by_name().items()
         }
     if descriptor.ssm_path is None:
         mappings: tuple[tuple[str, str], ...] = ()
