@@ -13,6 +13,9 @@ through the SSM:
 - ``inline``/``flatten``: write one inline root set keyed by target name, or
   per-component sets when ``components`` is given.
 
+Values keep their SSV type (Boolean/Integer/Real/String); no float coercion is
+applied when a parameter is copied into a binding or a generated SSV.
+
 The SSV and SSM are standardized interchange artifacts and read-only inputs.
 Only ``build.model_dir`` is mutated, so the built SSP is self-contained and
 runnable.
@@ -21,11 +24,11 @@ runnable.
 from __future__ import annotations
 
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal
 
-from pyssp_standard import SSM, SSP, SSV, ParameterMappingReference
+from pyssp_standard import SSM, SSP, SSV, Ssp1Parameter
 
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -79,31 +82,12 @@ def bind(
     return _inline_flatten(build, ssm, name, values, components)
 
 
-def _read_ssv(path: Path) -> tuple[str, dict[str, float]]:
-    """The SSV's default set name and its values, read once."""
+def _read_ssv(path: Path) -> tuple[str, dict[str, Ssp1Parameter]]:
+    """The SSV's default set name and its typed parameters, read once."""
     with SSV(path, mode="r") as ssv:
-        values = {
-            parameter.name: float(parameter.attributes["value"])
-            for parameter in ssv.xml.parameters
-        }
+        values = ssv.parameters_by_name()
         name = ssv.xml.name or path.stem
     return name, values
-
-
-def _read_mappings(path: Path) -> tuple[tuple[str, str], ...]:
-    """The SSM's ``(member, target)`` pairs, read once."""
-    with SSM(path, mode="r") as ssm:
-        return tuple((mapping.source, mapping.target) for mapping in ssm.xml.mappings)
-
-
-def _targets(values: dict[str, float], ssm: Path | None) -> dict[str, float]:
-    """Values keyed by target name; identity when there is no SSM."""
-    if ssm is None:
-        return dict(values)
-    return {
-        target: values[source]
-        for source, target in _read_mappings(ssm)
-    }
 
 
 def _external_attach(
@@ -111,7 +95,7 @@ def _external_attach(
     ssv: Path,
     ssm: Path | None,
     name: str,
-    values: dict[str, float],
+    values: dict[str, Ssp1Parameter],
 ) -> BindingResult:
     root = build.model_dir
     descriptor = build.descriptor
@@ -156,15 +140,18 @@ def _external_flatten(
     build: BuiltFixture,
     ssm: Path | None,
     name: str,
-    values: dict[str, float],
+    values: dict[str, Ssp1Parameter],
 ) -> BindingResult:
-    targets = _targets(values, ssm)
+    if ssm is None:
+        targets = values
+    else:
+        with SSM(ssm, mode="r") as mapping:
+            targets = mapping.resolve(values)
     with tempfile.TemporaryDirectory(prefix=f"{name}_") as temp_dir:
         ssv_path = Path(temp_dir) / f"{name}.ssv"
         with SSV(ssv_path, mode="w") as ssv:
             ssv.xml.name = name
-            for target, value in targets.items():
-                ssv.xml.add_parameter(parname=target, ptype="Real", value=value)
+            ssv.xml.extend_parameters(targets.values())
         with SSP(build.model_dir, mode="a") as ssp:
             ssp.add_external_parameterset(ssv_path)
 
@@ -184,19 +171,15 @@ def _inline_attach(
     build: BuiltFixture,
     ssm: Path,
     name: str,
-    values: dict[str, float],
+    values: dict[str, Ssp1Parameter],
 ) -> BindingResult:
     mapping_name = ssm.name
     with SSP(build.model_dir, mode="a") as ssp:
         with ssp.system_structure() as ssd:
-            ssd.extend_system_parameterset(values, binding_name=name)
-            binding = next(
-                candidate
-                for candidate in ssd.xml.system.parameter_bindings
-                if candidate.source is None and candidate.parameter_set is not None
-            )
-            binding.parameter_mapping = ParameterMappingReference(
-                source=f"resources/{mapping_name}"
+            ssd.extend_system_parameterset(
+                values.values(),
+                binding_name=name,
+                mapping_source=f"resources/{mapping_name}",
             )
         ssp.add_resource(ssm)
 
@@ -229,14 +212,20 @@ def _inline_flatten(
     build: BuiltFixture,
     ssm: Path | None,
     name: str,
-    values: dict[str, float],
+    values: dict[str, Ssp1Parameter],
     components: frozenset[str] | None,
 ) -> BindingResult:
-    targets = _targets(values, ssm)
+    if ssm is None:
+        targets = values
+    else:
+        with SSM(ssm, mode="r") as mapping:
+            targets = mapping.resolve(values)
     if components is None:
         with SSP(build.model_dir, mode="a") as ssp:
             with ssp.system_structure() as ssd:
-                ssd.extend_system_parameterset(targets, binding_name=name)
+                ssd.extend_system_parameterset(
+                    targets.values(), binding_name=name
+                )
         return BindingResult(
             ssp=build.model_dir,
             mode="inline",
@@ -253,13 +242,14 @@ def _inline_flatten(
     with SSP(build.model_dir, mode="a") as ssp:
         with ssp.system_structure() as ssd:
             root = ssd.xml.system
-            for target, value in targets.items():
-                *component_path, parameter = target.split(".")
-                component_name = ".".join(component_path)
-                if component_name not in components:
+            for target, parameter in targets.items():
+                component_name, _, parameter_name = target.rpartition(".")
+                if not component_name or component_name not in components:
                     continue
-                component = _resolve_system(root, component_path)
-                component.extend_inline_parameterset({parameter: value})
+                component = _resolve_system(root, component_name.split("."))
+                component.extend_inline_parameterset(
+                    [replace(parameter, name=parameter_name)]
+                )
                 written.add(component_name)
                 parameters += 1
 

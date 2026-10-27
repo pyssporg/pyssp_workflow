@@ -62,10 +62,15 @@ def scenario_targets(scenario: Scenario) -> dict[str, float]:
     Read-only. Raises ``ValueError`` when the scenario names no SSM; ``KeyError``
     when a mapping names a member the SSV lacks.
     """
-    if not scenario.mappings:
+    if scenario.ssm_path is None or not scenario.mappings:
         raise ValueError(
             f"Study scenario '{scenario.ssv_path}' names no scenario SSM"
         )
+    with SSV(scenario.ssv_path, mode="r") as ssv:
+        parameters = ssv.parameters_by_name()
+    with SSM(scenario.ssm_path, mode="r") as ssm:
+        resolved = ssm.resolve(parameters)
     return {
-        target: scenario.values[source] for source, target in scenario.mappings
+        target: float(parameter.attributes["value"])
+        for target, parameter in resolved.items()
     }

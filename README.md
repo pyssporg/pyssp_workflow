@@ -65,7 +65,9 @@ when given, SSM copied as resources), external flattened (generated
 target-keyed SSV), inline attached (root set plus attached mapping), and inline
 flattened (root set, or per-component sets when `components` is given).
 `BindingResult` reports the SSP, mode, mapping, parameter set, resources,
-written components, and parameter count.
+written components, and parameter count. Parameters keep their SSV type
+(Boolean/Integer/Real/String); value reading and mapping resolution come from
+`pyssp_standard` (`SSV.parameters_by_name`, `SSM.resolve`).
 
 ```python
 from pyssp_workflow.binding import bind

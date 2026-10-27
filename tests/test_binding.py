@@ -16,18 +16,24 @@ def _write_scenario(
     study_dir: Path,
     *,
     with_scenario: bool = True,
-    values: dict[str, float] | None = None,
+    values: dict[str, object] | None = None,
+    value_types: dict[str, str] | None = None,
     mappings: tuple[tuple[str, str], ...] | None = None,
     target_ssd: str = "SystemStructure.ssd",
 ) -> Path:
     study_dir.mkdir()
     values = values or {"height": 2.0, "k": 3.0}
+    value_types = value_types or {}
     mappings = mappings or (("height", "step.height"), ("k", "gain.k"))
     if with_scenario:
         with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
             ssv.xml.name = "Scenario"
             for name, value in values.items():
-                ssv.xml.add_parameter(name, ptype="Real", value=value)
+                ssv.xml.add_parameter(
+                    name,
+                    ptype=value_types.get(name, "Real"),
+                    value=value,
+                )
         with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
             for source, target in mappings:
                 ssm.xml.add_mapping(source, target)
@@ -98,6 +104,14 @@ def _inline_values(binding: ParameterBinding) -> dict[str, str]:
     assert binding.parameter_set is not None
     return {
         parameter.name: parameter.attributes["value"]
+        for parameter in binding.parameter_set.parameters
+    }
+
+
+def _inline_types(binding: ParameterBinding) -> dict[str, str]:
+    assert binding.parameter_set is not None
+    return {
+        parameter.name: parameter.type_name
         for parameter in binding.parameter_set.parameters
     }
 
@@ -469,3 +483,67 @@ def test_a_mapping_must_name_a_member_the_ssv_has(tmp_path: Path) -> None:
             ssm=ssm,
             mapping="flatten",
         )
+
+
+def test_flatten_and_inline_attach_preserve_typed_parameters(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(
+        tmp_path,
+        values={"enabled": True, "count": 3},
+        value_types={"enabled": "Boolean", "count": "Integer"},
+        mappings=(("enabled", "step.enabled"), ("count", "inner.gain.count")),
+    )
+
+    external = tmp_path / "external"
+    _write_model(external, nested=True)
+    bind(_fixture_build(external, study), ssv, ssm=ssm, mapping="flatten")
+    with SSV(external / "resources" / "Scenario.ssv", mode="r") as generated:
+        assert {
+            parameter.name: parameter.type_name
+            for parameter in generated.xml.parameters
+        } == {"step.enabled": "Boolean", "inner.gain.count": "Integer"}
+
+    inline = tmp_path / "inline"
+    _write_model(inline, nested=True)
+    bind(
+        _fixture_build(inline, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+        mapping="flatten",
+    )
+    with SSD(inline / "SystemStructure.ssd", mode="r") as ssd:
+        assert _inline_types(ssd.xml.system.parameter_bindings[0]) == {
+            "step.enabled": "Boolean",
+            "inner.gain.count": "Integer",
+        }
+
+    per_component = tmp_path / "per_component"
+    _write_model(per_component, nested=True)
+    bind(
+        _fixture_build(per_component, study),
+        ssv,
+        mode="inline",
+        ssm=ssm,
+        mapping="flatten",
+        components=frozenset({"step", "inner.gain"}),
+    )
+    with SSD(per_component / "SystemStructure.ssd", mode="r") as ssd:
+        root = ssd.xml.system
+        step = next(element for element in root.elements if element.name == "step")
+        inner = next(element for element in root.elements if element.name == "inner")
+        gain = next(element for element in inner.elements if element.name == "gain")
+        assert _inline_types(step.parameter_bindings[0]) == {
+            "enabled": "Boolean"
+        }
+        assert _inline_types(gain.parameter_bindings[0]) == {"count": "Integer"}
+
+    attached = tmp_path / "attached"
+    _write_model(attached)
+    bind(_fixture_build(attached, study), ssv, mode="inline", ssm=ssm)
+    with SSD(attached / "SystemStructure.ssd", mode="r") as ssd:
+        assert _inline_types(ssd.xml.system.parameter_bindings[0]) == {
+            "enabled": "Boolean",
+            "count": "Integer",
+        }
