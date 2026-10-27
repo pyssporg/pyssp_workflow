@@ -16,8 +16,8 @@ The package exposes six module surfaces. Each returns plain records or paths.
 - **`authoring`**: SysML derivation through the `pyssp` CLI, study, model, and
   fixture builds, legacy checked-in SSP builds, Modelica FMU build, build
   reporting.
-- **`binding`**: `bind`, which writes one scenario binding into a built SSP and
-  returns a `BindingResult`.
+- **`binding`**: `bind`, which dispatches one scenario binding into a built SSP
+  through `SSP.bind_parameters` and returns a `BindingResult`.
 - **`compare`**: `ResultRef`, `ComparisonRequest`, `ComparisonRecord`,
   `compare_csvs`.
 - **`study`**: `Experiment`, `StudyDescriptor`, `read_study_descriptor`,
@@ -47,6 +47,10 @@ bind(build, ssv, *, set_name=None, mode="external"|"inline", ssm=None,
 - `mode` places the parameter set externally or inline.
 - `mapping` keeps SSV member names (`attach`) or resolves them to SSP target
   names through the optional SSM (`flatten`).
+- `bind` is a dispatcher: every placement delegates to `SSP.bind_parameters`.
+  Resource names, tree walks, and SSV writing live in `pyssp_standard`; the
+  workflow keeps the allowed combinations, the root-binding and target-SSD
+  gates, and the per-component filtering.
 - External attached copies SSV and, when given, SSM as resources.
 - External flattened writes a generated target-keyed SSV.
 - Inline attached writes a root set plus the attached mapping.

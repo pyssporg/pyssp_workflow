@@ -539,3 +539,26 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
             "enabled": "Boolean",
             "count": "Integer",
         }
+
+
+def test_inline_attach_rejects_a_non_system_structure_target(
+    tmp_path: Path,
+) -> None:
+    study, ssv, ssm = _study(tmp_path, target_ssd="ModelStructure.ssd")
+    model = tmp_path / "model"
+    _write_model(model)
+
+    with pytest.raises(ValueError, match="SystemStructure.ssd"):
+        bind(_fixture_build(model, study), ssv, mode="inline", ssm=ssm)
+
+
+def test_bind_surfaces_a_resource_collision(tmp_path: Path) -> None:
+    study, ssv, ssm = _study(tmp_path)
+    model = tmp_path / "model"
+    _write_model(model)
+    resources = model / "resources"
+    resources.mkdir()
+    (resources / "Scenario.ssv").write_text("different bytes", encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="Scenario.ssv"):
+        bind(_fixture_build(model, study), ssv, ssm=ssm)
