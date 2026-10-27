@@ -6,7 +6,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
-from pyssp_standard import SSD, SSM, SSV, Component, System
+from pyssp_standard import SSD, SSM, SSV, Component
 
 from pyssp_workflow import authoring
 from pyssp_workflow.authoring import (
@@ -59,9 +59,8 @@ def _write_ssp_archive(path: Path) -> None:
     staging = path.parent / "staging"
     staging.mkdir()
     with SSD(staging / "SystemStructure.ssd", mode="w") as ssd:
-        ssd.xml.system = System(
-            name="System", elements=[Component(name="step")]
-        )
+        root = ssd.new_system("System")
+        root.add_component("step")
     with ZipFile(path, "w") as archive:
         archive.write(staging / "SystemStructure.ssd", "SystemStructure.ssd")
 
@@ -308,13 +307,12 @@ def _write_model_description(path: Path, interface_type: str) -> None:
 
 def _write_legacy_source(source: Path, *, nested: bool = False) -> None:
     source.mkdir(parents=True)
-    elements: list[Component | System] = [Component(name="step")]
-    if nested:
-        elements.append(
-            System(name="inner", elements=[Component(name="gain")])
-        )
     with SSD(source / "SystemStructure.ssd", mode="w") as ssd:
-        ssd.xml.system = System(name="System", elements=elements)
+        root = ssd.new_system("System")
+        root.add_component("step")
+        if nested:
+            inner = root.add_subsystem("inner")
+            inner.add_component("gain")
     for name in ("fmu_a", "fmu_b"):
         _write_model_description(
             source / "resources" / name / "modelDescription.xml", "ModelExchange"
@@ -374,7 +372,7 @@ def test_build_legacy_model_flattens_the_system(tmp_path: Path) -> None:
     build_legacy_model(source, model, flatten=True)
 
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        root = ssd.xml.system
+        root = ssd.system
         assert [element.name for element in root.elements] == ["step", "inner_gain"]
         assert all(isinstance(element, Component) for element in root.elements)
 

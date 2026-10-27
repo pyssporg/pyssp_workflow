@@ -110,7 +110,7 @@ def _external_attach(
 
     with SSP(root, mode="a") as ssp:
         with ssp.system_structure() as ssd:
-            system = ssd.xml.system
+            system = ssd.system
             if system is None:
                 raise ValueError(f"Runtime SSD has no system: {ssd.path}")
             if system.parameter_bindings:
@@ -241,7 +241,7 @@ def _inline_flatten(
     parameters = 0
     with SSP(build.model_dir, mode="a") as ssp:
         with ssp.system_structure() as ssd:
-            root = ssd.xml.system
+            root = ssd.system
             for target, parameter in targets.items():
                 component_name, _, parameter_name = target.rpartition(".")
                 if not component_name or component_name not in components:

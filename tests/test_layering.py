@@ -32,6 +32,9 @@ COMPARE_MAY_IMPORT = ("pyssp_vv.measure", "pyssp_vv.evidence")
 #: Symbols that would mean a capability was reimplemented here.
 CAPABILITY_MARKERS = ("def compare(", "def judge(", "def passed(", "passed(")
 
+#: Raw document fields that the SSD facade replaces with a neutral read path.
+FORBIDDEN_XML_FIELDS = ("xml.system", "xml.version")
+
 
 def _module_name(path: Path) -> str:
     parts = list(path.relative_to(SRC).with_suffix("").parts)
@@ -204,4 +207,24 @@ def test_pyssp_standard_is_only_imported_through_its_public_surface():
     assert not violations, (
         "a module imported a pyssp_standard submodule instead of the package "
         "top level:\n" + "\n".join(violations)
+    )
+
+
+def test_the_ssd_tree_is_read_through_the_facade():
+    # The rule module names the forbidden fields itself.
+    this_file = Path(__file__).resolve()
+    violations = [
+        f"{path.relative_to(PROJECT)}:{number} uses {field}"
+        for root in (SRC, TESTS)
+        for path in sorted(root.rglob("*.py"))
+        if path.resolve() != this_file
+        for number, line in enumerate(
+            path.read_text(encoding="utf-8").splitlines(), 1
+        )
+        for field in FORBIDDEN_XML_FIELDS
+        if field in line
+    ]
+    assert not violations, (
+        "a module reached past the SSD facade into the raw document:\n"
+        + "\n".join(violations)
     )

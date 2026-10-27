@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pyssp_standard import SSD, SSM, SSV, Component, ParameterBinding, System
+from pyssp_standard import SSD, SSM, SSV, ParameterBinding
 
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
@@ -62,20 +62,13 @@ def _write_scenario(
 
 def _write_model(model_dir: Path, *, nested: bool = False) -> None:
     model_dir.mkdir()
-    elements: list[Component | System] = []
-    if nested:
-        elements.append(Component(name="step"))
-        elements.append(
-            System(
-                name="inner",
-                elements=[
-                    Component(name="gain"),
-                    Component(name="sine"),
-                ],
-            )
-        )
     with SSD(model_dir / "SystemStructure.ssd", mode="w") as ssd:
-        ssd.xml.system = System(name="System", elements=elements)
+        root = ssd.new_system("System")
+        root.add_component("step")
+        if nested:
+            inner = root.add_subsystem("inner")
+            inner.add_component("gain")
+            inner.add_component("sine")
 
 
 def _fixture_build(model_dir: Path, descriptor: StudyDescriptor) -> BuiltFixture:
@@ -117,7 +110,7 @@ def _inline_types(binding: ParameterBinding) -> dict[str, str]:
 
 def _root_values(model_dir: Path) -> dict[str, str]:
     with SSD(model_dir / "SystemStructure.ssd", mode="r") as ssd:
-        bindings = ssd.xml.system.parameter_bindings
+        bindings = ssd.system.parameter_bindings
         assert len(bindings) == 1
         return _inline_values(bindings[0])
 
@@ -142,7 +135,7 @@ def test_external_attach_copies_the_ssv_and_ssm_and_maps_them(
     assert (model / "resources" / "Scenario.ssv").is_file()
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        bindings = ssd.xml.system.parameter_bindings
+        bindings = ssd.system.parameter_bindings
         assert len(bindings) == 1
         binding = bindings[0]
         assert isinstance(binding, ParameterBinding)
@@ -180,7 +173,7 @@ def test_external_attach_without_ssm_leaves_the_mapping_unset(
     assert (model / "resources" / "Scenario.ssv").is_file()
     assert list((model / "resources").glob("*.ssm")) == []
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        bindings = ssd.xml.system.parameter_bindings
+        bindings = ssd.system.parameter_bindings
         assert len(bindings) == 1
         assert bindings[0].source == "resources/Scenario.ssv"
         assert bindings[0].parameter_mapping is None
@@ -207,7 +200,7 @@ def test_external_flatten_writes_a_target_named_ssv(tmp_path: Path) -> None:
     assert result.parameters == 2
     assert list((model / "resources").glob("*.ssm")) == []
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        bindings = ssd.xml.system.parameter_bindings
+        bindings = ssd.system.parameter_bindings
         assert len(bindings) == 1
         assert bindings[0].source == "resources/Scenario.ssv"
         assert bindings[0].parameter_mapping is None
@@ -276,7 +269,7 @@ def test_inline_attach_writes_member_named_values(tmp_path: Path) -> None:
     assert result.parameters == 2
     assert (model / "resources" / "test_baseline.ssm").is_file()
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        bindings = ssd.xml.system.parameter_bindings
+        bindings = ssd.system.parameter_bindings
         assert len(bindings) == 1
         binding = bindings[0]
         assert binding.source is None
@@ -368,7 +361,7 @@ def test_inline_flatten_components_writes_only_listed_components(
     assert result.components == ("inner.gain", "step")
     assert result.parameters == 2
     with SSD(model / "SystemStructure.ssd", mode="r") as ssd:
-        root = ssd.xml.system
+        root = ssd.system
         step = next(element for element in root.elements if element.name == "step")
         inner = next(element for element in root.elements if element.name == "inner")
         gain = next(element for element in inner.elements if element.name == "gain")
@@ -513,7 +506,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
         mapping="flatten",
     )
     with SSD(inline / "SystemStructure.ssd", mode="r") as ssd:
-        assert _inline_types(ssd.xml.system.parameter_bindings[0]) == {
+        assert _inline_types(ssd.system.parameter_bindings[0]) == {
             "step.enabled": "Boolean",
             "inner.gain.count": "Integer",
         }
@@ -529,7 +522,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
         components=frozenset({"step", "inner.gain"}),
     )
     with SSD(per_component / "SystemStructure.ssd", mode="r") as ssd:
-        root = ssd.xml.system
+        root = ssd.system
         step = next(element for element in root.elements if element.name == "step")
         inner = next(element for element in root.elements if element.name == "inner")
         gain = next(element for element in inner.elements if element.name == "gain")
@@ -542,7 +535,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
     _write_model(attached)
     bind(_fixture_build(attached, study), ssv, mode="inline", ssm=ssm)
     with SSD(attached / "SystemStructure.ssd", mode="r") as ssd:
-        assert _inline_types(ssd.xml.system.parameter_bindings[0]) == {
+        assert _inline_types(ssd.system.parameter_bindings[0]) == {
             "enabled": "Boolean",
             "count": "Integer",
         }

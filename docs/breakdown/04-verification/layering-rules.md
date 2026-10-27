@@ -27,6 +27,9 @@ status: current
 - No module may import a `pyssp_standard` submodule (`pyssp_standard.ssd`,
   `pyssp_standard.standard.*`); `pyssp_standard` is consumed only through its
   top-level public surface, enforced by `tests/test_layering.py`.
+- No module may reach the SSD tree through `ssd.xml.system` or stamp
+  `ssd.xml.version`; the facade exposes `ssd.system`, and it owns the SSP
+  version.
 
 ## Tests
 
@@ -46,6 +49,8 @@ status: current
   markers `def compare(`, `def judge(`, `def passed(`, `passed(`.
 - `test_pyssp_standard_is_only_imported_through_its_public_surface`: no module
   under `src` or `tests` imports a `pyssp_standard` submodule.
+- `test_the_ssd_tree_is_read_through_the_facade`: no module reaches
+  `ssd.xml.system` or sets `ssd.xml.version`.
 
 ## Owns
 
