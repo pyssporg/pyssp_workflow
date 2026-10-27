@@ -24,6 +24,9 @@ status: current
 - Only `nodes` may import `pyssp_vv.judge`.
 - `authoring` must not import `pyssp_vv`.
 - `compare` may import `pyssp_vv.measure` and `pyssp_vv.evidence` only.
+- No module may import a `pyssp_standard` submodule (`pyssp_standard.ssd`,
+  `pyssp_standard.standard.*`); `pyssp_standard` is consumed only through its
+  top-level public surface, enforced by `tests/test_layering.py`.
 
 ## Tests
 
@@ -41,6 +44,8 @@ status: current
   imports only the allowed V&V modules.
 - `test_no_capability_is_reimplemented_here`: no `src` file contains the
   markers `def compare(`, `def judge(`, `def passed(`, `passed(`.
+- `test_pyssp_standard_is_only_imported_through_its_public_surface`: no module
+  under `src` or `tests` imports a `pyssp_standard` submodule.
 
 ## Owns
 

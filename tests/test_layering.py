@@ -6,6 +6,8 @@ import ast
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "pyssp_workflow"
+PROJECT = Path(__file__).resolve().parents[1]
+TESTS = PROJECT / "tests"
 
 FLOW_LAYER = "nodes"
 
@@ -50,26 +52,56 @@ def _internal_layer(name: str) -> str | None:
     return parts[1] if len(parts) > 1 else ""
 
 
-def _imports(path: Path) -> list[str]:
+def _import_sites(path: Path) -> list[tuple[str, int]]:
+    """Every imported module name with the line it appears on.
+
+    Relative imports keep their leading dots; ``from pyssp_workflow import
+    fixture`` also names the submodule it imports.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    names: list[str] = []
+    sites: list[tuple[str, int]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            names.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-            names.append(node.module)
-            if node.module == "pyssp_workflow":
-                # ``from pyssp_workflow import fixture`` names a submodule.
-                for alias in node.names:
-                    candidate = SRC / alias.name
-                    if candidate.with_suffix(".py").exists() or candidate.is_dir():
-                        names.append(f"{node.module}.{alias.name}")
-    return names
+            sites.extend((alias.name, node.lineno) for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level
+            if node.module:
+                sites.append((prefix + node.module, node.lineno))
+                if node.module == "pyssp_workflow":
+                    # ``from pyssp_workflow import fixture`` names a submodule.
+                    for alias in node.names:
+                        candidate = SRC / alias.name
+                        if candidate.with_suffix(".py").exists() or candidate.is_dir():
+                            sites.append((f"{node.module}.{alias.name}", node.lineno))
+            elif node.level:
+                sites.extend(
+                    (prefix + alias.name, node.lineno)
+                    for alias in node.names
+                    if alias.name == "pyssp_standard"
+                    or alias.name.startswith("pyssp_standard.")
+                )
+    return sites
+
+
+def _imports(path: Path) -> list[str]:
+    return [name for name, _line in _import_sites(path)]
 
 
 def _walk():
     for path in sorted(SRC.rglob("*.py")):
         yield path, _module_name(path), _imports(path)
+
+
+def _pyssp_standard_submodule_sites(path: Path) -> list[str]:
+    """Import sites that reach past the ``pyssp_standard`` public surface."""
+    violations: list[str] = []
+    for name, line in _import_sites(path):
+        target = name.lstrip(".")
+        if target.startswith("pyssp_standard.") or (
+            name.startswith(".") and target == "pyssp_standard"
+        ):
+            violations.append(f"{path.relative_to(PROJECT)}:{line} imports {name}")
+    return violations
 
 
 def test_every_internal_layer_is_in_the_dependency_table():
@@ -159,4 +191,17 @@ def test_no_capability_is_reimplemented_here():
                 violations.append(f"{path.relative_to(SRC)} contains {marker!r}")
     assert not violations, (
         "measurement or judgment leaked into the workflow layer:\n" + "\n".join(violations)
+    )
+
+
+def test_pyssp_standard_is_only_imported_through_its_public_surface():
+    violations = [
+        violation
+        for root in (SRC, TESTS)
+        for path in sorted(root.rglob("*.py"))
+        for violation in _pyssp_standard_submodule_sites(path)
+    ]
+    assert not violations, (
+        "a module imported a pyssp_standard submodule instead of the package "
+        "top level:\n" + "\n".join(violations)
     )

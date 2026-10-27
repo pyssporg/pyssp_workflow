@@ -24,11 +24,11 @@ runnable.
 from __future__ import annotations
 
 import tempfile
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from pyssp_standard import SSM, SSP, SSV, Ssp1Parameter
+from pyssp_standard import SSM, SSP, SSV, Parameter
 
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -82,7 +82,7 @@ def bind(
     return _inline_flatten(build, ssm, name, values, components)
 
 
-def _read_ssv(path: Path) -> tuple[str, dict[str, Ssp1Parameter]]:
+def _read_ssv(path: Path) -> tuple[str, dict[str, Parameter]]:
     """The SSV's default set name and its typed parameters, read once."""
     with SSV(path, mode="r") as ssv:
         values = ssv.parameters_by_name()
@@ -95,7 +95,7 @@ def _external_attach(
     ssv: Path,
     ssm: Path | None,
     name: str,
-    values: dict[str, Ssp1Parameter],
+    values: dict[str, Parameter],
 ) -> BindingResult:
     root = build.model_dir
     descriptor = build.descriptor
@@ -140,7 +140,7 @@ def _external_flatten(
     build: BuiltFixture,
     ssm: Path | None,
     name: str,
-    values: dict[str, Ssp1Parameter],
+    values: dict[str, Parameter],
 ) -> BindingResult:
     if ssm is None:
         targets = values
@@ -151,7 +151,7 @@ def _external_flatten(
         ssv_path = Path(temp_dir) / f"{name}.ssv"
         with SSV(ssv_path, mode="w") as ssv:
             ssv.xml.name = name
-            ssv.xml.extend_parameters(targets.values())
+            ssv.extend_parameters(targets.values())
         with SSP(build.model_dir, mode="a") as ssp:
             ssp.add_external_parameterset(ssv_path)
 
@@ -171,7 +171,7 @@ def _inline_attach(
     build: BuiltFixture,
     ssm: Path,
     name: str,
-    values: dict[str, Ssp1Parameter],
+    values: dict[str, Parameter],
 ) -> BindingResult:
     mapping_name = ssm.name
     with SSP(build.model_dir, mode="a") as ssp:
@@ -212,7 +212,7 @@ def _inline_flatten(
     build: BuiltFixture,
     ssm: Path | None,
     name: str,
-    values: dict[str, Ssp1Parameter],
+    values: dict[str, Parameter],
     components: frozenset[str] | None,
 ) -> BindingResult:
     if ssm is None:
@@ -248,7 +248,7 @@ def _inline_flatten(
                     continue
                 component = _resolve_system(root, component_name.split("."))
                 component.extend_inline_parameterset(
-                    [replace(parameter, name=parameter_name)]
+                    [parameter.renamed(parameter_name)]
                 )
                 written.add(component_name)
                 parameters += 1

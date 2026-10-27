@@ -4,8 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pyssp_standard import SSD, SSM, SSV
-from pyssp_standard.ssd import ParameterBinding, Ssd1Component, System
+from pyssp_standard import SSD, SSM, SSV, Component, ParameterBinding, System
 
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
@@ -63,15 +62,15 @@ def _write_scenario(
 
 def _write_model(model_dir: Path, *, nested: bool = False) -> None:
     model_dir.mkdir()
-    elements: list[Ssd1Component | System] = []
+    elements: list[Component | System] = []
     if nested:
-        elements.append(Ssd1Component(name="step"))
+        elements.append(Component(name="step"))
         elements.append(
             System(
                 name="inner",
                 elements=[
-                    Ssd1Component(name="gain"),
-                    Ssd1Component(name="sine"),
+                    Component(name="gain"),
+                    Component(name="sine"),
                 ],
             )
         )
