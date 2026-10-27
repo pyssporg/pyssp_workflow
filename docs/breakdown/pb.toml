@@ -1,0 +1,12 @@
+[layout]
+archive = "../archive/archive.zip"
+repo_root = "../.."
+
+[registers]
+index = "README.md"
+log = "design-choice-log.md"
+traceability = "traceability-map.md"
+
+# Records keep their cited ids: ADR -> AD, DD -> IMD.
+[ids]
+prefixes = { architecture-decision = "AD", implementation-decision = "IMD" }

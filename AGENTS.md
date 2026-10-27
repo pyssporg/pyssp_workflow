@@ -64,10 +64,14 @@ retry. It does not implement the capabilities it composes.
 
 ## Conventions
 
-- `docs/breakdown/` holds intent, architecture, catalog, and decisions.
-- Decision records use `ADR-<NNN>.md` architecture, `DD-<NNN>-<slug>.md`
-  implementation, and `ED-<NNN>-<slug>.md` evolution; existing records live in
-  `docs/breakdown/<layer>/decisions/`.
+- `docs/breakdown/` holds current state in seven layers; `docs/breakdown/README.md`
+  is the index and boundary-rule authority.
+- Dated decisions live in `docs/archive/archive.zip`, reached only through
+  `pb archive --root docs/breakdown list|read|add`; there are no per-layer
+  `decisions/` folders.
+- Generated registers live in `docs/archive/` (`README.md`,
+  `design-choice-log.md`, `traceability-map.md`); regenerate with
+  `pb registers --root docs/breakdown`, never edit them by hand.
 
 ## Environment
 

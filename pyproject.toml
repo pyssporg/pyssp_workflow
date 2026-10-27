@@ -24,7 +24,7 @@ classifiers = [
 # Measurement, judgment, and evidence come from pyssp_vv. Capabilities are
 # linked under 3rd_party/ and installed from requirements-dev.txt during
 # development, so `pip install -e .` stays offline. These names are reserved
-# for the first PyPI release; see ADR-003.
+# for the first PyPI release; see AD-003.
 dependencies = []
 
 [project.optional-dependencies]

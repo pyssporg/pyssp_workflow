@@ -1,3 +1,12 @@
+---
+id: INFO-002
+type: info
+title: Architecture
+summary: Module boundaries, dependency rules, library border rule, and node contract for the composition layer.
+date: 2026-10-26
+status: current
+---
+
 # Architecture
 
 ## Position in the ecosystem
@@ -70,7 +79,7 @@ package two audiences and two release cadences.
 
 ## Open questions
 
-None at present. The module surfaces were settled in [ADR-004](decisions/ADR-004.md).
+None at present. The module surfaces were settled in `AD-004`.
 
 The dependency layout is settled: capabilities are linked under `3rd_party/` and
-installed from `requirements-dev.txt`. See [ADR-003](decisions/ADR-003.md).
+installed from `requirements-dev.txt`. See `AD-003`.

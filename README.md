@@ -95,6 +95,7 @@ writing.
 
 ## Documentation
 
+- [Product breakdown index](docs/breakdown/README.md)
 - [Intent](docs/breakdown/00-intent/intent.md)
 - [Architecture and dependency rules](docs/breakdown/02-architecture/architecture.md)
 - [Node catalog](docs/breakdown/02-architecture/node-catalog.md)

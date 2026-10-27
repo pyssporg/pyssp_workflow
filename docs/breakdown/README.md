@@ -1,17 +1,27 @@
-# Product Breakdown
+# Product Breakdown — pyssp_workflow
 
-The durable record of what `pyssp_workflow` is and what it refuses to be.
+Current state of `pyssp_workflow`: what it is, what it promises, how it is
+organized, and how those claims are checked.
 
-| Folder | Holds |
-| --- | --- |
-| `00-intent/` | Purpose, scope, non-goals |
-| `02-architecture/` | Module boundaries, dependency rules, node catalog |
-| `03-implementation/` | Workflow-level design decisions |
-| `05-operation/` | Submodules and local development |
+## The Seven Layers
 
-## Naming
+- `00-intent/` — why does the project exist, who is it for?
+- `01-product/` — what is delivered, out of scope?
+- `02-architecture/` — how are deliverables, evidence, and work organized?
+- `03-implementation/` — with what concrete assets is it realized? (absent: no
+  current-state asset leaves yet; implementation facts live in
+  `02-architecture/` and `05-operation/`)
+- `04-verification/` — how do we know it satisfies the requirements?
+- `05-operation/` — how do authors run, maintain, release?
+- `06-evolution/` — what controlled changes come next? (absent: no candidates
+  are tracked here)
+- the decision archive (`docs/archive/archive.zip`) — the flat, dated decision
+  stream: history, never current state; read via `pb archive`, never browsed
 
-- `ADR-<NNN>.md` — architecture decision
-- `DD-<NNN>-<slug>.md` — implementation decision
+## Boundary Rule
 
-The capability itself is documented in the `pyssp_vv` repository.
+A document's home is the layer whose question it answers; information flows
+downward only. Current state lives in the layer leaves, history in the decision
+archive (`docs/archive/archive.zip`, read via `pb archive`), tracking in the
+generated registers (`design-choice-log.md`, `traceability-map.md`) — this file
+indexes current state only.

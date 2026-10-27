@@ -1,3 +1,12 @@
+---
+id: INFO-001
+type: info
+title: Intent
+summary: "Why pyssp_workflow exists: composition of build, run, compare, verify, and validate steps, and what it refuses to own."
+date: 2026-10-26
+status: current
+---
+
 # Intent
 
 ## Purpose

@@ -1,42 +1,70 @@
+---
+id: INFO-003
+type: info
+title: Node Catalog
+summary: "Public contract of the node layer: the four exported nodes, their inputs, outputs, and output ownership."
+date: 2026-10-23
+status: current
+---
+
 # Node Catalog
 
 The catalog is the public contract of the node layer: names, inputs, outputs,
-side effects. Adding a node is free; renaming one or changing its output path is
-a breaking change.
+side effects. Adding a node is free; renaming one or changing its output path
+is a breaking change.
 
-Every node obeys the rules in [ADR-002](decisions/ADR-002.md): explicit paths,
-one owned output path, picklable values, no engine objects or figures crossing
-the boundary.
+Every node obeys `AD-002`: explicit paths, one owned output path, picklable
+values, no engine objects or figures crossing the boundary. The import rules
+live in `INFO-002` and the composition rule in `AD-001`.
 
-## Leaves
+## Exported nodes
 
-| Node | Group | Inputs | Outputs | Delegates to | Status |
-| --- | --- | --- | --- | --- | --- |
-| `derive_ssp_from_sysml` | authoring | SysML path, FMU paths, `out_dir` | SSP root, provenance map | `pyssp` CLI | later |
-| `sync_ssd_to_sysml` | authoring | SSD path, `out_dir` | SysML path | `pyssp` CLI | later |
-| `check_roundtrip` | authoring | SSD path, `out_dir` | loss report | `pyssp` CLI | later |
-| `build_model` | authoring | model dir, `out_dir` | SSP root | `pyssp_standard` | later |
-| `resolve_parameter_set` | study | SSP root, SSV path, overrides, `out_dir` | resolved record | `pyssp_standard` | later |
-| `simulate` | simulate | SSP root, params, window, backend, `out_dir` | result CSV, run manifest | `pyssp_simulate` | later |
-| `measure` | measure | two result CSVs, alignment policy, `out_dir` | metrics CSV + comparison JSON | `pyssp_vv.measure` | later |
-| `judge` | judge | comparison JSON, policy, `out_dir` | judgment JSON | `pyssp_vv.judge` | later |
-| `write_bundle` | evidence | `EvidenceBundle`, `out_dir` | `evidence.json` | `pyssp_vv.evidence` | **implemented** |
-| `plot_runs` | figures | comparison JSON, signal list, `out_dir` | figures + plot manifest | `pyssp_vv` figure spec | later |
-| `plot_bundle` | figures | bundle path, `out_dir` | figures + plot manifest | `pyssp_vv` figure spec | later |
+`pyssp_workflow.nodes.__all__` exports four nodes.
 
-## Composites
+### Authoring group
 
-| Node | Fans out to | Returns |
-| --- | --- | --- |
-| `assess_case` | `simulate` per factor level, `measure`, `judge`, `write_bundle` | bundle path |
-| `campaign` | `assess_case` per assessment | bundle paths, failed assessment ids |
+All three run the `pyssp` CLI through `pyssp_workflow.authoring` and use
+`DEFAULT_TIMEOUT_SECONDS`.
 
-Composites submit leaves and return a future; they do not block inside the node
-body. Futures are passed as direct arguments when they form a dependency edge.
+- **`derive_ssd`**
+  - Inputs: `architecture_path`, `output_path`, `composition`, optional
+    `pyssp`.
+  - Output: absolute path to the derived SSD.
+  - Delegates to `derive_ssd_from_sysml`.
+- **`derive_ssp`**
+  - Inputs: `architecture_path`, `output_path`, `composition`, optional
+    `pyssp`, optional `fmu_root`.
+  - Output: absolute path to the derived SSP.
+  - Delegates to `derive_ssp_from_sysml`.
+- **`derive_study`**
+  - Inputs: `architecture_path`, `output_dir`, `composition`, required
+    keyword `model_name`, optional `pyssp`.
+  - Output: absolute path to the derived study.
+  - Delegates to `derive_study_from_sysml`.
 
-## Deliberately absent
+### Evidence group
 
-- `compare` and `judge` as implementations. The nodes named above are thin
-  wrappers; the logic is in `pyssp_vv`.
-- `fix_model`, `relax_tolerance`, `auto_accept` — no node writes to an input
-  path, so there is nothing for these to do.
+- **`write_bundle`**
+  - Inputs: `EvidenceBundle`, `out_dir`.
+  - Output: absolute path to `<out_dir>/evidence.json`.
+  - Owns exactly that one path and creates `out_dir` when missing.
+  - Declares `retries=0` and `timeout=60.0`.
+  - Delegates to `EvidenceBundle.write`.
+
+## Contract
+
+- Inputs are explicit paths or plain data; no engine object crosses.
+- Each invocation owns exactly one output path.
+- Arguments and return values are picklable, so a process pool can run them.
+- Engine work runs in a child process.
+- No node writes to an input path.
+
+## Owns
+
+- Node names, inputs, outputs, and side effects promised to flow authors.
+
+## Excludes
+
+- Node contract rules as design: `INFO-002`.
+- Authoring commands and build helpers: `INFO-005`.
+- Scheduling engine behaviour: `sequence_extensions`.

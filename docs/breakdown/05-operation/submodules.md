@@ -1,3 +1,12 @@
+---
+id: INFO-004
+type: info
+title: Submodules
+summary: Capability gitlinks under 3rd_party, development install layout, and the gitlink update procedure.
+date: 2026-10-23
+status: current
+---
+
 # Submodules
 
 All capabilities this package composes are linked under `3rd_party/`. Each
