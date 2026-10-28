@@ -24,6 +24,7 @@ FILE_LEVELS = {
     "test_bundle.py": "level_component",
     "test_compare.py": "level_component",
     "test_fixture.py": "level_unit",
+    "test_fixture_policy.py": "level_static",
     "test_layering.py": "level_static",
     "test_markers.py": "level_static",
     "test_nodes_import.py": "level_static",
