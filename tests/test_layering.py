@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ast
+import textwrap
+from collections.abc import Iterable
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "pyssp_workflow"
@@ -55,44 +57,120 @@ def _internal_layer(name: str) -> str | None:
     return parts[1] if len(parts) > 1 else ""
 
 
-def _import_sites(path: Path) -> list[tuple[str, int]]:
+def _resolve_relative(module: str, path: Path, level: int, target: str) -> str:
+    """Resolve a relative import target against the importing module's package."""
+    package = module if path.name == "__init__.py" else module.rpartition(".")[0]
+    parts = package.split(".") if package else []
+    drop = level - 1
+    if drop:
+        parts = parts[:-drop] if drop <= len(parts) else []
+    if target:
+        parts.extend(target.split("."))
+    return ".".join(part for part in parts if part)
+
+
+def _submodule(base: str, name: str) -> str | None:
+    """``base.name`` when that internal module exists, so the layer is visible."""
+    if base != "pyssp_workflow" and not base.startswith("pyssp_workflow."):
+        return None
+    candidate = SRC.joinpath(*base.split(".")[1:], name)
+    if candidate.with_suffix(".py").exists() or candidate.is_dir():
+        return f"{base}.{name}"
+    return None
+
+
+def _dynamic_import(node: ast.Call) -> str | None:
+    """The literal name handed to ``importlib.import_module`` / ``__import__``."""
+    func = node.func
+    if isinstance(func, ast.Name):
+        if func.id not in ("__import__", "import_module"):
+            return None
+    elif isinstance(func, ast.Attribute):
+        if func.attr != "import_module":
+            return None
+    else:
+        return None
+    if not node.args:
+        return None
+    argument = node.args[0]
+    if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+        return argument.value
+    return None
+
+
+def _import_sites(path: Path, module: str | None = None) -> list[tuple[str, int]]:
     """Every imported module name with the line it appears on.
 
-    Relative imports keep their leading dots; ``from pyssp_workflow import
-    fixture`` also names the submodule it imports.
+    Relative imports are resolved against the importing module's package and
+    literal arguments of ``importlib.import_module`` / ``__import__`` count as
+    imports, so neither form can slip past the rules.
     """
+    try:
+        module = module or _module_name(path)
+    except ValueError:  # a test module lives outside the package
+        module = ""
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     sites: list[tuple[str, int]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             sites.extend((alias.name, node.lineno) for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
-            prefix = "." * node.level
-            if node.module:
-                sites.append((prefix + node.module, node.lineno))
-                if node.module == "pyssp_workflow":
-                    # ``from pyssp_workflow import fixture`` names a submodule.
-                    for alias in node.names:
-                        candidate = SRC / alias.name
-                        if candidate.with_suffix(".py").exists() or candidate.is_dir():
-                            sites.append((f"{node.module}.{alias.name}", node.lineno))
-            elif node.level:
-                sites.extend(
-                    (prefix + alias.name, node.lineno)
-                    for alias in node.names
-                    if alias.name == "pyssp_standard"
-                    or alias.name.startswith("pyssp_standard.")
-                )
+            base = node.module or ""
+            if node.level:
+                base = _resolve_relative(module, path, node.level, base)
+            if base:
+                sites.append((base, node.lineno))
+            for alias in node.names:
+                imported = _submodule(base, alias.name) if alias.name != "*" else None
+                if imported:
+                    sites.append((imported, node.lineno))
+        elif isinstance(node, ast.Call):
+            target = _dynamic_import(node)
+            if target is not None:
+                sites.append((target, node.lineno))
     return sites
 
 
-def _imports(path: Path) -> list[str]:
-    return [name for name, _line in _import_sites(path)]
+def _imports(path: Path, module: str | None = None) -> list[str]:
+    return [name for name, _line in _import_sites(path, module)]
 
 
 def _walk():
     for path in sorted(SRC.rglob("*.py")):
         yield path, _module_name(path), _imports(path)
+
+
+def _layer_violations(entries: Iterable[tuple[str, Iterable[str]]]) -> list[str]:
+    violations: list[str] = []
+    for module, imports in entries:
+        layer = _layer(module)
+        allowed = INTERNAL_DEPENDENCIES.get(layer, frozenset())
+        for name in imports:
+            target = _internal_layer(name)
+            if target is None or target in ("", layer):
+                continue
+            if target not in allowed:
+                violations.append(f"{module} (layer {layer or 'package'}) imports {name}")
+    return violations
+
+
+def _flow_violations(entries: Iterable[tuple[str, Iterable[str]]]) -> list[str]:
+    return [
+        f"{module} imports {name}"
+        for module, imports in entries
+        for name in imports
+        if name.split(".")[0] == "sequence_extensions" and _layer(module) != FLOW_LAYER
+    ]
+
+
+def _judgment_violations(entries: Iterable[tuple[str, Iterable[str]]]) -> list[str]:
+    return [
+        f"{module} imports {name}"
+        for module, imports in entries
+        if _layer(module) not in JUDGE_ALLOWED
+        for name in imports
+        if name.startswith("pyssp_vv.judge")
+    ]
 
 
 def _pyssp_standard_submodule_sites(path: Path) -> list[str]:
@@ -116,16 +194,9 @@ def test_every_internal_layer_is_in_the_dependency_table():
 
 
 def test_internal_modules_only_import_from_their_allowed_layers():
-    violations = []
-    for _path, module, imports in _walk():
-        layer = _layer(module)
-        allowed = INTERNAL_DEPENDENCIES.get(layer, frozenset())
-        for name in imports:
-            target = _internal_layer(name)
-            if target is None or target in ("", layer):
-                continue
-            if target not in allowed:
-                violations.append(f"{module} (layer {layer or 'package'}) imports {name}")
+    violations = _layer_violations(
+        (module, imports) for _path, module, imports in _walk()
+    )
     assert not violations, (
         "an internal module imported a layer it must not depend on:\n"
         + "\n".join(violations)
@@ -133,12 +204,7 @@ def test_internal_modules_only_import_from_their_allowed_layers():
 
 
 def test_flow_engine_is_confined_to_the_node_layer():
-    violations = [
-        f"{module} imports {name}"
-        for _path, module, imports in _walk()
-        for name in imports
-        if name.split(".")[0] == "sequence_extensions" and _layer(module) != FLOW_LAYER
-    ]
+    violations = _flow_violations((module, imports) for _path, module, imports in _walk())
     assert not violations, (
         "flow engine leaked outside pyssp_workflow.nodes:\n" + "\n".join(violations)
     )
@@ -159,13 +225,9 @@ def test_authoring_cannot_reach_the_judgment_layer():
 
 
 def test_judgment_is_only_reachable_from_the_node_layer():
-    violations = [
-        f"{module} imports {name}"
-        for _path, module, imports in _walk()
-        if _layer(module) not in JUDGE_ALLOWED
-        for name in imports
-        if name.startswith("pyssp_vv.judge")
-    ]
+    violations = _judgment_violations(
+        (module, imports) for _path, module, imports in _walk()
+    )
     assert not violations, (
         "a module outside the node layer decides acceptability:\n" + "\n".join(violations)
     )
@@ -228,3 +290,71 @@ def test_the_ssd_tree_is_read_through_the_facade():
         "a module reached past the SSD facade into the raw document:\n"
         + "\n".join(violations)
     )
+
+
+def _probe(tmp_path: Path, source: str, *, module: str) -> list[str]:
+    """Import names of a synthetic module, resolved as if it lived in ``module``."""
+    path = tmp_path.joinpath(*module.split(".")).with_suffix(".py")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(textwrap.dedent(source), encoding="utf-8")
+    return _imports(path, module)
+
+
+def test_relative_imports_are_resolved_against_the_importing_package(tmp_path: Path):
+    imports = _probe(
+        tmp_path,
+        """
+        from .. import compare
+        from ..compare import compare_csvs
+        from ..nodes import evidence
+        """,
+        module="pyssp_workflow.authoring._probe",
+    )
+
+    assert "pyssp_workflow.compare" in imports
+    assert "pyssp_workflow.nodes" in imports
+    assert "pyssp_workflow.nodes.evidence" in imports
+    # The layer table now sees the bypass: authoring may not import compare.
+    assert _layer_violations([("pyssp_workflow.authoring._probe", imports)])
+
+
+def test_a_relative_import_of_a_forbidden_layer_fails_the_rule(tmp_path: Path):
+    imports = _probe(
+        tmp_path,
+        "from ..compare import compare_csvs\n",
+        module="pyssp_workflow.authoring._probe",
+    )
+
+    violations = _layer_violations([("pyssp_workflow.authoring._probe", imports)])
+
+    assert len(violations) == 1
+    assert "pyssp_workflow.compare" in violations[0]
+
+
+def test_a_dynamic_judgment_import_fails_the_judgment_rule(tmp_path: Path):
+    imports = _probe(
+        tmp_path,
+        """
+        import importlib
+        importlib.import_module("pyssp_vv.judge")
+        """,
+        module="pyssp_workflow.compare._probe",
+    )
+
+    violations = _judgment_violations([("pyssp_workflow.compare._probe", imports)])
+
+    assert violations == ["pyssp_workflow.compare._probe imports pyssp_vv.judge"]
+
+
+def test_a_dunder_import_of_the_flow_engine_fails_the_confinement_rule(tmp_path: Path):
+    imports = _probe(
+        tmp_path,
+        '__import__("sequence_extensions.flow")\n',
+        module="pyssp_workflow.compare._probe",
+    )
+
+    violations = _flow_violations([("pyssp_workflow.compare._probe", imports)])
+
+    assert violations == [
+        "pyssp_workflow.compare._probe imports sequence_extensions.flow"
+    ]

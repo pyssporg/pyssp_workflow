@@ -1,63 +1,14 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 from pyssp_standard import SSD, SSM, SSV, ParameterBinding
+from support import write_scenario
 
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
 from pyssp_workflow.study import StudyDescriptor, read_study_descriptor
-
-
-def _write_scenario(
-    study_dir: Path,
-    *,
-    with_scenario: bool = True,
-    values: dict[str, object] | None = None,
-    value_types: dict[str, str] | None = None,
-    mappings: tuple[tuple[str, str], ...] | None = None,
-    target_ssd: str = "SystemStructure.ssd",
-) -> Path:
-    study_dir.mkdir()
-    values = values or {"height": 2.0, "k": 3.0}
-    value_types = value_types or {}
-    mappings = mappings or (("height", "step.height"), ("k", "gain.k"))
-    if with_scenario:
-        with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
-            ssv.xml.name = "Scenario"
-            for name, value in values.items():
-                ssv.xml.add_parameter(
-                    name,
-                    ptype=value_types.get(name, "Real"),
-                    value=value,
-                )
-        with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
-            for source, target in mappings:
-                ssm.xml.add_mapping(source, target)
-    descriptor = {
-        "model": "example",
-        "composition": "System",
-        "sut": "sut",
-        "target_ssd": target_ssd,
-        "study": "test_baseline",
-        "experiment": {
-            "name": "baseline",
-            "start_time": 0.0,
-            "stop_time": 1.0,
-            "step_size": 0.1,
-        },
-    }
-    if with_scenario:
-        descriptor["scenario"] = {
-            "set": "Scenario",
-            "ssv": "Scenario.ssv",
-            "ssm": "test_baseline.ssm",
-        }
-    path = study_dir / "study.json"
-    path.write_text(json.dumps(descriptor), encoding="utf-8")
-    return path
 
 
 def _write_model(model_dir: Path, *, nested: bool = False) -> None:
@@ -85,7 +36,7 @@ def _study(
     tmp_path: Path,
     **scenario_kwargs,
 ) -> tuple[StudyDescriptor, Path, Path]:
-    descriptor = _write_scenario(tmp_path / "study", **scenario_kwargs)
+    descriptor = write_scenario(tmp_path / "study", **scenario_kwargs)
     study = read_study_descriptor(descriptor)
     assert study.ssv_path is not None
     assert study.ssm_path is not None

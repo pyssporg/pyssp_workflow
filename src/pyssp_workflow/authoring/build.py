@@ -110,7 +110,7 @@ def _build_one(
     build_study(
         architecture_dir,
         study_dir,
-        study,
+        composition,
         name,
         pyssp=pyssp,
     )

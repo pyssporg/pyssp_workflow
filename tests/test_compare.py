@@ -64,6 +64,28 @@ def test_compare_csvs_writes_one_metric_table(tmp_path: Path) -> None:
     assert record.summary.max_abs_error == pytest.approx(0.5)
 
 
+@pytest.mark.level_unit
+def test_summary_counts_the_comparison_grid_not_the_reference_samples(
+    tmp_path: Path,
+) -> None:
+    reference = _write_result_csv(
+        tmp_path / "reference" / "result.csv",
+        {
+            "time": [0.0, 0.25, 0.5, 0.75, 1.0],
+            "x": [0.0, 0.5, 1.0, 1.5, 2.0],
+        },
+    )
+    candidate = _write_result_csv(
+        tmp_path / "candidate" / "result.csv",
+        {"time": [0.0, 0.5, 1.0], "x": [0.0, 1.0, 2.0]},
+    )
+    # The request declares 0.0..1.0 step 0.5: three grid points, not five
+    # reference samples.
+    record = compare_csvs(_comparison_request(reference, candidate, tmp_path / "out"))
+
+    assert record.summary.time_points == 3
+
+
 def test_comparison_record_round_trips_through_its_dict(tmp_path: Path) -> None:
     reference = _write_result_csv(
         tmp_path / "reference" / "result.csv", {"time": [0.0, 1.0], "x": [0.0, 1.0]}

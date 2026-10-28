@@ -38,10 +38,20 @@ dev = ["pytest>=8", "ruff>=0.6"]
 packages = ["src/pyssp_workflow"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 testpaths = ["tests"]
 xfail_strict = true
 addopts = "-q"
+markers = [
+  "level_static: static inspection of sources and imports",
+  "level_unit: one function or object in isolation",
+  "level_component: one workflow component against its file artifacts",
+  "level_contract: the argv/file contract at a component border",
+  "level_integration: several real components composed together",
+  "level_system: the package as a whole end to end",
+  "level_acceptance: the accepted product behaviour",
+  "slow: tests that dominate the suite runtime",
+]
 
 [tool.ruff]
 line-length = 100

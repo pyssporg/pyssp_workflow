@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
-from pyssp_standard import SSM, SSV
+from support import write_scenario
 
 from pyssp_workflow.study import (
     Scenario,
@@ -14,53 +13,8 @@ from pyssp_workflow.study import (
 )
 
 
-def _write_scenario(
-    study_dir: Path,
-    *,
-    with_scenario: bool = True,
-    model_source: str | None = None,
-    values: dict[str, float] | None = None,
-    mappings: tuple[tuple[str, str], ...] | None = None,
-) -> Path:
-    study_dir.mkdir()
-    values = values or {"height": 2.0, "k": 3.0}
-    mappings = mappings or (("height", "step.height"), ("k", "gain.k"))
-    if with_scenario:
-        with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
-            ssv.xml.name = "Scenario"
-            for name, value in values.items():
-                ssv.xml.add_parameter(name, ptype="Real", value=value)
-        with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
-            for source, target in mappings:
-                ssm.xml.add_mapping(source, target)
-    descriptor = {
-        "model": "example",
-        "composition": "System",
-        "sut": "sut",
-        "target_ssd": "SystemStructure.ssd",
-        "study": "test_baseline",
-        "experiment": {
-            "name": "baseline",
-            "start_time": 0.0,
-            "stop_time": 1.0,
-            "step_size": 0.1,
-        },
-    }
-    if with_scenario:
-        descriptor["scenario"] = {
-            "set": "Scenario",
-            "ssv": "Scenario.ssv",
-            "ssm": "test_baseline.ssm",
-        }
-    if model_source is not None:
-        descriptor["model_source"] = model_source
-    path = study_dir / "study.json"
-    path.write_text(json.dumps(descriptor), encoding="utf-8")
-    return path
-
-
 def test_read_study_descriptor_points_at_standard_artifacts(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
+    descriptor = write_scenario(tmp_path / "study")
     study = read_study_descriptor(descriptor)
 
     assert study.study == "test_baseline"
@@ -71,7 +25,7 @@ def test_read_study_descriptor_points_at_standard_artifacts(tmp_path: Path) -> N
 
 
 def test_read_study_descriptor_without_scenario(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study", with_scenario=False)
+    descriptor = write_scenario(tmp_path / "study", with_scenario=False)
     study = read_study_descriptor(descriptor)
 
     assert study.set_name is None
@@ -86,7 +40,7 @@ def test_read_study_descriptor_without_scenario(tmp_path: Path) -> None:
 
 
 def test_read_study_descriptor_records_model_source(tmp_path: Path) -> None:
-    descriptor = _write_scenario(
+    descriptor = write_scenario(
         tmp_path / "study",
         with_scenario=False,
         model_source="models/ssp/example/ssp",
@@ -98,7 +52,7 @@ def test_read_study_descriptor_records_model_source(tmp_path: Path) -> None:
 
 
 def test_read_scenario_decodes_the_standard_artifacts(tmp_path: Path) -> None:
-    descriptor = _write_scenario(tmp_path / "study")
+    descriptor = write_scenario(tmp_path / "study")
     study = read_study_descriptor(descriptor)
 
     scenario = read_scenario(study)
@@ -117,7 +71,7 @@ def test_read_scenario_decodes_the_standard_artifacts(tmp_path: Path) -> None:
 def test_read_scenario_rejects_a_descriptor_without_a_scenario(
     tmp_path: Path,
 ) -> None:
-    descriptor = _write_scenario(tmp_path / "study", with_scenario=False)
+    descriptor = write_scenario(tmp_path / "study", with_scenario=False)
     study = read_study_descriptor(descriptor)
 
     with pytest.raises(ValueError, match="names no scenario SSV"):
@@ -140,7 +94,7 @@ def test_scenario_targets_rejects_a_scenario_without_a_mapping(
 
 
 def test_scenario_targets_rejects_a_mapping_the_ssv_lacks(tmp_path: Path) -> None:
-    descriptor = _write_scenario(
+    descriptor = write_scenario(
         tmp_path / "study",
         values={"height": 2.0},
         mappings=(("missing", "step.height"),),

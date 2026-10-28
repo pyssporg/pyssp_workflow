@@ -17,6 +17,7 @@ from pyssp_workflow.authoring import (
     report_builds,
 )
 from pyssp_workflow.authoring import build as authoring_build
+from pyssp_workflow.authoring import derive as authoring_derive
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -68,7 +69,7 @@ def _write_ssp_archive(path: Path) -> None:
 def _stub_derivations(
     monkeypatch: pytest.MonkeyPatch,
     calls: list[str],
-    studies_seen: list[str] | None = None,
+    derivations_seen: list[tuple[str, str]] | None = None,
 ) -> None:
     def fake_study(
         architecture_path,
@@ -83,8 +84,8 @@ def _stub_derivations(
         calls.append("study")
         assert Path(architecture_path).is_dir()
         assert model_name == "demo"
-        if studies_seen is not None:
-            studies_seen.append(composition)
+        if derivations_seen is not None:
+            derivations_seen.append((composition, model_name))
         _write_study_artifacts(Path(output_dir))
         return Path(output_dir) / "study.json"
 
@@ -121,8 +122,8 @@ def test_build_fixture_runs_study_then_model_without_packaging(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     calls: list[str] = []
-    studies_seen: list[str] = []
-    _stub_derivations(monkeypatch, calls, studies_seen)
+    derivations_seen: list[str] = []
+    _stub_derivations(monkeypatch, calls, derivations_seen)
     model_dir = _fixture_dir(tmp_path)
 
     builds = build_fixture(
@@ -134,7 +135,7 @@ def test_build_fixture_runs_study_then_model_without_packaging(
     )
 
     assert calls == ["study", "model"]
-    assert studies_seen == ["test_baseline"]
+    assert derivations_seen == [("System", "demo")]
     build = builds["test_baseline"]
     assert isinstance(build, BuiltFixture)
     assert build.model_name == "demo"
@@ -172,8 +173,8 @@ def test_bind_external_attach_packages_a_built_record(
 
 def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
-    studies_seen: list[str] = []
-    _stub_derivations(monkeypatch, calls, studies_seen)
+    derivations_seen: list[str] = []
+    _stub_derivations(monkeypatch, calls, derivations_seen)
     model_dir = _fixture_dir(tmp_path)
 
     builds = build_fixture(
@@ -185,7 +186,8 @@ def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.Mo
     )
 
     assert calls == ["study", "model", "study", "model"]
-    assert studies_seen == ["test_baseline", "second"]
+    # One composition, two studies: every study derives the same composition.
+    assert derivations_seen == [("System", "demo"), ("System", "demo")]
     assert sorted(builds) == ["second", "test_baseline"]
     assert builds["second"].study == "second"
     assert builds["second"].study_dir.name == "second"
@@ -280,6 +282,33 @@ def test_report_builds_prints_one_line_per_study(
     assert lines[1] == (
         f"Built demo b: {tmp_path / 'artifacts' / 'models' / 'demo' / 'b' / 'model'}"
     )
+
+
+@pytest.mark.level_contract
+def test_ssp_derivation_argv_carries_the_fmu_validation_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments: list[list[str]] = []
+
+    def fake_run(pyssp, argv, timeout):
+        arguments.append(list(argv))
+        return ""
+
+    monkeypatch.setattr(authoring_derive, "_run_pyssp", fake_run)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "model.ssp", "System", validate_fmus=False
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "model.ssp", "System", validate_fmus=True
+    )
+
+    assert "--composition" in arguments[0]
+    assert arguments[0][arguments[0].index("--composition") + 1] == "System"
+    assert "--skip-fmu-validation" in arguments[0]
+    assert "--skip-fmu-validation" not in arguments[1]
 
 
 def _write_model_description(path: Path, interface_type: str) -> None:
