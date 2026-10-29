@@ -70,6 +70,7 @@ def _stub_derivations(
     monkeypatch: pytest.MonkeyPatch,
     calls: list[str],
     derivations_seen: list[tuple[str, str]] | None = None,
+    selections_seen: list[tuple[str, dict[str, str] | None]] | None = None,
 ) -> None:
     def fake_study(
         architecture_path,
@@ -80,8 +81,11 @@ def _stub_derivations(
         pyssp=None,
         target_ssd="SystemStructure.ssd",
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
+        selections=None,
     ):
         calls.append("study")
+        if selections_seen is not None:
+            selections_seen.append(("study", selections))
         assert Path(architecture_path).is_dir()
         assert model_name == "demo"
         if derivations_seen is not None:
@@ -101,8 +105,11 @@ def _stub_derivations(
         allow_missing_fmus=False,
         type_check=True,
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
+        selections=None,
     ):
         calls.append("model")
+        if selections_seen is not None:
+            selections_seen.append(("model", selections))
         assert Path(architecture_path).is_dir()
         assert composition == "System"
         _write_ssp_archive(Path(output_path))
@@ -135,7 +142,7 @@ def test_build_fixture_runs_study_then_model_without_packaging(
     )
 
     assert calls == ["study", "model"]
-    assert derivations_seen == [("System", "demo")]
+    assert derivations_seen == [("test_baseline", "demo")]
     build = builds["test_baseline"]
     assert isinstance(build, BuiltFixture)
     assert build.model_name == "demo"
@@ -186,8 +193,9 @@ def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.Mo
     )
 
     assert calls == ["study", "model", "study", "model"]
-    # One composition, two studies: every study derives the same composition.
-    assert derivations_seen == [("System", "demo"), ("System", "demo")]
+    # The study build derives the Study composition; only the model build
+    # derives the SspModel composition.
+    assert derivations_seen == [("test_baseline", "demo"), ("second", "demo")]
     assert sorted(builds) == ["second", "test_baseline"]
     assert builds["second"].study == "second"
     assert builds["second"].study_dir.name == "second"
@@ -309,6 +317,144 @@ def test_ssp_derivation_argv_carries_the_fmu_validation_flag(
     assert arguments[0][arguments[0].index("--composition") + 1] == "System"
     assert "--skip-fmu-validation" in arguments[0]
     assert "--skip-fmu-validation" not in arguments[1]
+
+
+def _select_pairs(argv: list[str]) -> list[str]:
+    return [argv[index + 1] for index, value in enumerate(argv) if value == "--select"]
+
+
+def _record_generate_argv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> list[list[str]]:
+    arguments: list[list[str]] = []
+
+    def fake_run(pyssp, argv, timeout):
+        arguments.append(list(argv))
+        if "study" in argv:
+            _write_study_artifacts(Path(argv[argv.index("--output-dir") + 1]))
+        return ""
+
+    monkeypatch.setattr(authoring_derive, "_run_pyssp", fake_run)
+    return arguments
+
+
+@pytest.mark.level_contract
+def test_select_pairs_are_sorted_and_omitted_when_unselected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+    selections = {"variant_b": "two", "variant_a": "one"}
+
+    authoring_derive.derive_ssd_from_sysml(
+        architecture, tmp_path / "out.ssd", "System", selections=selections
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "out.ssp", "System", selections=selections
+    )
+    authoring_derive.derive_study_from_sysml(
+        architecture,
+        tmp_path / "study",
+        "System",
+        model_name="demo",
+        selections=selections,
+    )
+    authoring_derive.derive_ssd_from_sysml(
+        architecture, tmp_path / "plain.ssd", "System"
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "plain.ssp", "System", selections={}
+    )
+
+    assert [_select_pairs(argv) for argv in arguments[:3]] == [
+        ["variant_a=one", "variant_b=two"],
+        ["variant_a=one", "variant_b=two"],
+        ["variant_a=one", "variant_b=two"],
+    ]
+    assert [_select_pairs(argv) for argv in arguments[3:]] == [[], []]
+    assert "--select" not in arguments[3]
+    assert "--select" not in arguments[4]
+
+
+def test_build_fixture_passes_each_study_only_its_own_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selections_seen: list[tuple[str, dict[str, str] | None]] = []
+    _stub_derivations(
+        monkeypatch, [], selections_seen=selections_seen
+    )
+    model_dir = _fixture_dir(tmp_path)
+    study_selection = {"sut.path.stage": "attenuateStage"}
+    model_selection = {"path.stage": "attenuateStage"}
+
+    build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        studies=("a", "b"),
+        selections={
+            "b": {"study": study_selection, "model": model_selection},
+        },
+    )
+
+    assert selections_seen == [
+        ("study", None),
+        ("model", None),
+        ("study", study_selection),
+        ("model", model_selection),
+    ]
+
+
+def test_build_fixture_accepts_one_scope_and_rejects_an_unknown_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selections_seen: list[tuple[str, dict[str, str] | None]] = []
+    _stub_derivations(
+        monkeypatch, [], selections_seen=selections_seen
+    )
+    model_dir = _fixture_dir(tmp_path)
+
+    build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        studies=("a",),
+        selections={"a": {"study": {"sut.path": "direct"}}},
+    )
+    assert selections_seen == [
+        ("study", {"sut.path": "direct"}),
+        ("model", None),
+    ]
+
+    with pytest.raises(ValueError, match="allowed scopes: study, model"):
+        build_fixture(
+            model_dir=model_dir,
+            repo_root=tmp_path,
+            model_name="demo",
+            composition="System",
+            studies=("a",),
+            selections={"a": {"bogus": {"path": "direct"}}},
+        )
+
+
+def test_build_fixture_rejects_a_selection_for_an_unknown_study(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_derivations(monkeypatch, [])
+    model_dir = _fixture_dir(tmp_path)
+
+    with pytest.raises(ValueError, match="unknown"):
+        build_fixture(
+            model_dir=model_dir,
+            repo_root=tmp_path,
+            model_name="demo",
+            composition="System",
+            studies=("a",),
+            selections={"unknown": {"study": {"variant": "two"}}},
+        )
 
 
 def _write_model_description(path: Path, interface_type: str) -> None:

@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from pyssp_workflow.authoring._process import find_executable, run
 
 DEFAULT_TIMEOUT_SECONDS = 1800.0
+
+
+def _selection_arguments(selections: Mapping[str, str] | None) -> list[str]:
+    """Return deterministic ``--select`` pairs; empty when nothing is selected."""
+    if not selections:
+        return []
+    arguments: list[str] = []
+    for key in sorted(selections):
+        arguments.extend(["--select", f"{key}={selections[key]}"])
+    return arguments
 
 
 def _run_pyssp(
@@ -32,8 +43,14 @@ def derive_ssd_from_sysml(
     parameter_set_prefix: str = "parameter_sets",
     type_check: bool = True,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    selections: Mapping[str, str] | None = None,
 ) -> Path:
-    """Generate ``SystemStructure.ssd`` from a SysML architecture."""
+    """Generate ``SystemStructure.ssd`` from a SysML architecture.
+
+    ``selections`` resolves SysML variation points at build time only; pass the
+    same selection that the study derivation receives so the SSD agrees with
+    the SSV/SSM.
+    """
     output = Path(output_path)
     arguments = [
         "generate",
@@ -49,6 +66,7 @@ def derive_ssd_from_sysml(
     ]
     if not type_check:
         arguments.append("--skip_type_check")
+    arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
     return output
 
@@ -65,8 +83,14 @@ def derive_ssp_from_sysml(
     allow_missing_fmus: bool = False,
     type_check: bool = True,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    selections: Mapping[str, str] | None = None,
 ) -> Path:
-    """Export one ``SspModel`` composition as an SSP archive."""
+    """Export one ``SspModel`` composition as an SSP archive.
+
+    ``selections`` resolves SysML variation points at build time only; pass the
+    same selection that the study derivation receives so the SSP agrees with
+    the SSV/SSM.
+    """
     output = Path(output_path)
     arguments = [
         "generate",
@@ -88,6 +112,7 @@ def derive_ssp_from_sysml(
         arguments.append("--allow-missing-fmus")
     if not type_check:
         arguments.append("--skip_type_check")
+    arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
     return output
 
@@ -101,11 +126,15 @@ def derive_study_from_sysml(
     pyssp: str | Path | None = None,
     target_ssd: str = "SystemStructure.ssd",
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    selections: Mapping[str, str] | None = None,
 ) -> Path:
     """Generate study SSV, SSM, and ``study.json``; never an SSP.
 
     Returns the descriptor path. The descriptor names the SSV and SSM; callers
     that need them read the same ``study.json`` contract as the simulator.
+    ``selections`` resolves SysML variation points at build time only; pass the
+    same selection that the model derivation receives so the SSV/SSM agree
+    with the SSD.
     """
     output = Path(output_dir)
     arguments = [
@@ -122,6 +151,7 @@ def derive_study_from_sysml(
         "--target-ssd",
         target_ssd,
     ]
+    arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
 
     descriptor = output / "study.json"
