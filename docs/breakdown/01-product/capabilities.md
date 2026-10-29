@@ -15,8 +15,8 @@ importable function and a node-ready work unit.
 
 ## Flow
 
-- `authoring` turns the SysML architecture into a study and an exported model
-  SSP.
+- `authoring` turns the SysML architecture into an analysis and an exported
+  model SSP.
 - `binding` writes the chosen scenario binding into the built SSP.
 - `pyssp_simulate` then runs the built SSP.
 - `compare` measures one candidate result CSV against a reference.
@@ -27,13 +27,13 @@ authoring ──> binding ──> simulate ──> compare
  (builds)     (SSP params)  (external)   (pyssp_vv.measure)
 ```
 
-## Study and fixture inputs
+## Analysis and fixture inputs
 
-- A study descriptor names the scenario SSV, the SSM, and the experiment
+- An analysis descriptor names the scenario SSV, the SSM, and the experiment
   window.
-- `build_fixture` returns one `BuiltFixture` per study.
-- Study artifacts live under `artifacts/studies/<model>/<study>`.
-- Model artifacts live under `artifacts/models/<model>/<study>/<build_name>`.
+- `build_fixture` returns one `BuiltFixture` per analysis.
+- Analysis artifacts live under `artifacts/analyses/<model>/<analysis>`.
+- Model artifacts live under `artifacts/models/<model>/<analysis>/<build_name>`.
 
 ## Scheduling
 

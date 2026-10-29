@@ -1,4 +1,4 @@
-"""SysML derivation steps: SSD, SSP, and study descriptors."""
+"""SysML derivation steps: SSD, SSP, and analysis descriptors."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def derive_ssd_from_sysml(
     """Generate ``SystemStructure.ssd`` from a SysML architecture.
 
     ``selections`` resolves SysML variation points at build time only; pass the
-    same selection that the study derivation receives so the SSD agrees with
+    same selection that the analysis derivation receives so the SSD agrees with
     the SSV/SSM.
     """
     output = Path(output_path)
@@ -88,7 +88,7 @@ def derive_ssp_from_sysml(
     """Export one ``SspModel`` composition as an SSP archive.
 
     ``selections`` resolves SysML variation points at build time only; pass the
-    same selection that the study derivation receives so the SSP agrees with
+    same selection that the analysis derivation receives so the SSP agrees with
     the SSV/SSM.
     """
     output = Path(output_path)
@@ -117,7 +117,7 @@ def derive_ssp_from_sysml(
     return output
 
 
-def derive_study_from_sysml(
+def derive_analysis_from_sysml(
     architecture_path: Path | str,
     output_dir: Path | str,
     composition: str,
@@ -128,10 +128,10 @@ def derive_study_from_sysml(
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
 ) -> Path:
-    """Generate study SSV, SSM, and ``study.json``; never an SSP.
+    """Generate analysis SSV, SSM, and ``analysis.json``; never an SSP.
 
     Returns the descriptor path. The descriptor names the SSV and SSM; callers
-    that need them read the same ``study.json`` contract as the simulator.
+    that need them read the same ``analysis.json`` contract as the simulator.
     ``selections`` resolves SysML variation points at build time only; pass the
     same selection that the model derivation receives so the SSV/SSM agree
     with the SSD.
@@ -139,7 +139,7 @@ def derive_study_from_sysml(
     output = Path(output_dir)
     arguments = [
         "generate",
-        "study",
+        "analysis",
         "--architecture",
         str(Path(architecture_path)),
         "--composition",
@@ -154,9 +154,9 @@ def derive_study_from_sysml(
     arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
 
-    descriptor = output / "study.json"
+    descriptor = output / "analysis.json"
     if not descriptor.is_file():
-        raise RuntimeError(f"pyssp study generation did not write {descriptor}")
+        raise RuntimeError(f"pyssp analysis generation did not write {descriptor}")
     return descriptor
 
 
@@ -164,5 +164,5 @@ __all__ = [
     "DEFAULT_TIMEOUT_SECONDS",
     "derive_ssd_from_sysml",
     "derive_ssp_from_sysml",
-    "derive_study_from_sysml",
+    "derive_analysis_from_sysml",
 ]

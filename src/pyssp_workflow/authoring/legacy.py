@@ -9,10 +9,10 @@ from pathlib import Path
 from pyssp_standard import SSP
 
 from pyssp_workflow import fixture
+from pyssp_workflow.analysis import read_analysis_descriptor
 from pyssp_workflow.authoring._dirs import reset_dir
 from pyssp_workflow.authoring._fmu import strip_fmu
-from pyssp_workflow.authoring.build import build_study
-from pyssp_workflow.study import read_study_descriptor
+from pyssp_workflow.authoring.build import build_analysis
 
 
 def _strip_legacy_resources(
@@ -69,7 +69,7 @@ def build_legacy_fixture(
     model_dir: Path | str,
     *,
     repo_root: Path | str,
-    study: str = "baseline",
+    analysis: str = "baseline",
     flatten: bool = False,
     strip_resources: Sequence[str] | None = None,
     artifacts_root: Path | str | None = None,
@@ -78,27 +78,27 @@ def build_legacy_fixture(
     """Build one checked-in SSP body and return its record; no packaging.
 
     The model's ``ssp_meta.source`` selects the checked-in body; the SysML
-    study supplies only the experiment descriptor. ``model_dir`` is read-only.
+    analysis supplies only the experiment descriptor. ``model_dir`` is read-only.
     """
     model = Path(model_dir)
     name = model.name
     artifacts = fixture.artifacts_root(repo_root, artifacts_root)
     architecture_dir = model / "architecture"
-    study_dir = fixture.study_dir(artifacts, name, study)
-    model_build_dir = fixture.model_dir(artifacts, name, study)
+    analysis_dir = fixture.analysis_dir(artifacts, name, analysis)
+    model_build_dir = fixture.model_dir(artifacts, name, analysis)
 
-    build_study(
+    build_analysis(
         architecture_dir,
-        study_dir,
-        study,
+        analysis_dir,
+        analysis,
         name,
         pyssp=pyssp,
     )
-    descriptor = read_study_descriptor(study_dir / "study.json")
+    descriptor = read_analysis_descriptor(analysis_dir / "analysis.json")
 
     if descriptor.model_source is None:
         raise ValueError(
-            f"Study '{study}' declares no ssp_meta.source; add it to the "
+            f"Analysis '{analysis}' declares no ssp_meta.source; add it to the "
             "SspModel composition to select the legacy SSP body"
         )
     source_dir = (Path(repo_root) / descriptor.model_source).resolve()
@@ -115,8 +115,8 @@ def build_legacy_fixture(
     )
     return fixture.BuiltFixture(
         model_name=name,
-        study=study,
-        study_dir=study_dir,
+        analysis=analysis,
+        analysis_dir=analysis_dir,
         model_dir=model_build_dir,
         descriptor=descriptor,
     )

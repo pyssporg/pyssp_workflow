@@ -15,12 +15,12 @@ status: current
 
 ## Declared dependencies
 
-- `fixture` may import `study`.
-- `study` may import no internal layer.
-- `authoring` may import `fixture`, `study`.
-- `binding` may import `fixture`, `study`.
+- `fixture` may import `analysis`.
+- `analysis` may import no internal layer.
+- `authoring` may import `fixture`, `analysis`.
+- `binding` may import `fixture`, `analysis`.
 - `compare` may import no internal layer.
-- `nodes` may import `fixture`, `study`, `authoring`, `binding`, `compare`.
+- `nodes` may import `fixture`, `analysis`, `authoring`, `binding`, `compare`.
 - Only `nodes` may import `pyssp_vv.judge`.
 - `authoring` must not import `pyssp_vv`.
 - `compare` may import `pyssp_vv.measure` and `pyssp_vv.evidence` only.

@@ -19,9 +19,9 @@ def test_artifacts_root_is_overridable(tmp_path: Path) -> None:
     assert fixture.artifacts_root(tmp_path, str(explicit)) == explicit
 
 
-def test_study_dir_is_the_study_artifacts_directory(tmp_path: Path) -> None:
-    assert fixture.study_dir(tmp_path, "demo", "baseline") == (
-        tmp_path / "studies" / "demo" / "baseline"
+def test_analysis_dir_is_the_analysis_artifacts_directory(tmp_path: Path) -> None:
+    assert fixture.analysis_dir(tmp_path, "demo", "baseline") == (
+        tmp_path / "analyses" / "demo" / "baseline"
     )
 
 
@@ -34,7 +34,7 @@ def test_model_dir_is_the_exported_model_directory(tmp_path: Path) -> None:
     )
 
 
-def test_study_and_model_dirs_are_distinct(tmp_path: Path) -> None:
-    assert fixture.study_dir(tmp_path, "demo", "baseline") != fixture.model_dir(
+def test_analysis_and_model_dirs_are_distinct(tmp_path: Path) -> None:
+    assert fixture.analysis_dir(tmp_path, "demo", "baseline") != fixture.model_dir(
         tmp_path, "demo", "baseline"
     )

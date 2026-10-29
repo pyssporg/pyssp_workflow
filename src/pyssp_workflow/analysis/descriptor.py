@@ -1,7 +1,7 @@
-"""Read the study descriptor that points at standardized scenario artifacts.
+"""Read the analysis descriptor that points at standardized scenario artifacts.
 
 The scenario SSV and SSM are the interchange artifacts. This module only reads
-the repository-internal ``study.json`` that names them and carries the
+the repository-internal ``analysis.json`` that names them and carries the
 experiment window. It never rewrites the SSV or SSM.
 """
 
@@ -21,13 +21,13 @@ class Experiment:
 
 
 @dataclass(frozen=True)
-class StudyDescriptor:
+class AnalysisDescriptor:
     path: Path
     model: str
     composition: str
     sut: str
     target_ssd: str
-    study: str
+    analysis: str
     model_source: str | None
     experiment: Experiment
     set_name: str | None
@@ -41,7 +41,7 @@ def _resolve(base: Path, value: str) -> Path:
     return candidate if candidate.is_absolute() else base / candidate
 
 
-def read_study_descriptor(path: Path | str) -> StudyDescriptor:
+def read_analysis_descriptor(path: Path | str) -> AnalysisDescriptor:
     descriptor_path = Path(path)
     data = json.loads(descriptor_path.read_text(encoding="utf-8"))
     experiment_data = data["experiment"]
@@ -55,13 +55,13 @@ def read_study_descriptor(path: Path | str) -> StudyDescriptor:
         set_name = str(scenario["set"])
         ssv_path = _resolve(base, str(scenario["ssv"]))
         ssm_path = _resolve(base, str(scenario["ssm"]))
-    return StudyDescriptor(
+    return AnalysisDescriptor(
         path=descriptor_path,
         model=str(data["model"]),
         composition=str(data["composition"]),
         sut=str(data["sut"]),
         target_ssd=str(data.get("target_ssd", "SystemStructure.ssd")),
-        study=str(data["study"]),
+        analysis=str(data["analysis"]),
         model_source=(
             str(data["model_source"])
             if data.get("model_source") is not None

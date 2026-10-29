@@ -44,7 +44,7 @@ def test_nodes_export_the_flow_backed_work_units() -> None:
     nodes = importlib.import_module("pyssp_workflow.nodes")
 
     assert callable(nodes.write_bundle)
-    assert callable(nodes.derive_study)
+    assert callable(nodes.derive_analysis)
 
 
 def test_nodes_require_the_flow_subpackage_not_just_its_parent(tmp_path: Path) -> None:

@@ -1,4 +1,4 @@
-"""Read the standardized scenario artifacts a study descriptor names.
+"""Read the standardized scenario artifacts an analysis descriptor names.
 
 The SSV and SSM are the interchange artifacts; this module opens them read-only
 and returns plain data. It never rewrites them.
@@ -12,12 +12,12 @@ from pathlib import Path
 
 from pyssp_standard import SSM, SSV
 
-from pyssp_workflow.study.descriptor import StudyDescriptor
+from pyssp_workflow.analysis.descriptor import AnalysisDescriptor
 
 
 @dataclass(frozen=True)
 class Scenario:
-    """One study scenario: SSV values and their optional SSM mappings."""
+    """One analysis scenario: SSV values and their optional SSM mappings."""
 
     set_name: str
     ssv_path: Path
@@ -26,14 +26,14 @@ class Scenario:
     mappings: tuple[tuple[str, str], ...]
 
 
-def read_scenario(descriptor: StudyDescriptor) -> Scenario:
+def read_scenario(descriptor: AnalysisDescriptor) -> Scenario:
     """The descriptor's scenario as read-only data.
 
     Raises ``ValueError`` when the descriptor names no scenario SSV.
     """
     if descriptor.ssv_path is None:
         raise ValueError(
-            f"Study descriptor '{descriptor.path}' names no scenario SSV"
+            f"Analysis descriptor '{descriptor.path}' names no scenario SSV"
         )
     with SSV(descriptor.ssv_path, mode="r") as ssv:
         values = {
@@ -64,7 +64,7 @@ def scenario_targets(scenario: Scenario) -> dict[str, float]:
     """
     if scenario.ssm_path is None or not scenario.mappings:
         raise ValueError(
-            f"Study scenario '{scenario.ssv_path}' names no scenario SSM"
+            f"Analysis scenario '{scenario.ssv_path}' names no scenario SSM"
         )
     with SSV(scenario.ssv_path, mode="r") as ssv:
         parameters = ssv.parameters_by_name()

@@ -37,7 +37,7 @@ if _flow_spec() is None:
 # guard above only reports a missing extra, this import surfaces broken installs.
 from sequence_extensions.flow import node  # noqa: E402,F401  (fail early, clearly)
 
-from pyssp_workflow.nodes.authoring import derive_ssd, derive_ssp, derive_study  # noqa: E402
+from pyssp_workflow.nodes.authoring import derive_analysis, derive_ssd, derive_ssp  # noqa: E402
 from pyssp_workflow.nodes.evidence import write_bundle  # noqa: E402
 
-__all__ = ["derive_ssd", "derive_ssp", "derive_study", "write_bundle"]
+__all__ = ["derive_ssd", "derive_ssp", "derive_analysis", "write_bundle"]

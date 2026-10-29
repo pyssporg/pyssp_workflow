@@ -14,19 +14,19 @@ matching file.
 
 ## Files
 
-- `test_authoring_build.py`: 13 tests. Fixture builds per study, artifact roots,
+- `test_authoring_build.py`: 13 tests. Fixture builds per analysis, artifact roots,
   explicit packaging, build report, legacy SSP builds, Modelica FMU build.
 - `test_binding.py`: 17 tests. The four placements, `set_name`, component
   selection, rejected combinations, typed parameter preservation.
 - `test_compare.py`: 6 tests. Metric table, record round-trip, legacy
   status/error ignored, missing out dir, missing signal, reference and result
   prefixes.
-- `test_fixture.py`: 5 tests. Artifact root default and override, study and
+- `test_fixture.py`: 5 tests. Artifact root default and override, analysis and
   model directories, their distinctness.
 - `test_layering.py`: 7 tests. Import graph and capability markers (`TEST-001`).
 - `test_nodes_import.py`: 2 tests. The flow extra is required; `write_bundle`
   is exported.
-- `test_study.py`: 7 tests. Descriptor reading, standard artifact decoding,
+- `test_analysis.py`: 7 tests. Descriptor reading, standard artifact decoding,
   scenario targets and rejected mappings.
 
 ## Configuration

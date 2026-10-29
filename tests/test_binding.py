@@ -6,9 +6,9 @@ import pytest
 from pyssp_standard import SSD, SSM, SSV, ParameterBinding
 from support import write_scenario
 
+from pyssp_workflow.analysis import AnalysisDescriptor, read_analysis_descriptor
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
-from pyssp_workflow.study import StudyDescriptor, read_study_descriptor
 
 
 def _write_model(model_dir: Path, *, nested: bool = False) -> None:
@@ -22,25 +22,25 @@ def _write_model(model_dir: Path, *, nested: bool = False) -> None:
             inner.add_component("sine")
 
 
-def _fixture_build(model_dir: Path, descriptor: StudyDescriptor) -> BuiltFixture:
+def _fixture_build(model_dir: Path, descriptor: AnalysisDescriptor) -> BuiltFixture:
     return BuiltFixture(
         model_name="example",
-        study=descriptor.study,
-        study_dir=descriptor.path.parent,
+        analysis=descriptor.analysis,
+        analysis_dir=descriptor.path.parent,
         model_dir=model_dir,
         descriptor=descriptor,
     )
 
 
-def _study(
+def _analysis(
     tmp_path: Path,
     **scenario_kwargs,
-) -> tuple[StudyDescriptor, Path, Path]:
-    descriptor = write_scenario(tmp_path / "study", **scenario_kwargs)
-    study = read_study_descriptor(descriptor)
-    assert study.ssv_path is not None
-    assert study.ssm_path is not None
-    return study, study.ssv_path, study.ssm_path
+) -> tuple[AnalysisDescriptor, Path, Path]:
+    descriptor = write_scenario(tmp_path / "analysis", **scenario_kwargs)
+    analysis = read_analysis_descriptor(descriptor)
+    assert analysis.ssv_path is not None
+    assert analysis.ssm_path is not None
+    return analysis, analysis.ssv_path, analysis.ssm_path
 
 
 def _inline_values(binding: ParameterBinding) -> dict[str, str]:
@@ -69,11 +69,11 @@ def _root_values(model_dir: Path) -> dict[str, str]:
 def test_external_attach_copies_the_ssv_and_ssm_and_maps_them(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    result = bind(_fixture_build(model, study), ssv, ssm=ssm)
+    result = bind(_fixture_build(model, analysis), ssv, ssm=ssm)
 
     assert result.ssp == model
     assert result.mode == "external"
@@ -112,11 +112,11 @@ def test_external_attach_copies_the_ssv_and_ssm_and_maps_them(
 def test_external_attach_without_ssm_leaves_the_mapping_unset(
     tmp_path: Path,
 ) -> None:
-    study, ssv, _ = _study(tmp_path)
+    analysis, ssv, _ = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
-    result = bind(_fixture_build(model, study), ssv)
+    result = bind(_fixture_build(model, analysis), ssv)
 
     assert result.ssv_resource == "Scenario.ssv"
     assert result.ssm_resource is None
@@ -131,12 +131,12 @@ def test_external_attach_without_ssm_leaves_the_mapping_unset(
 
 
 def test_external_flatten_writes_a_target_named_ssv(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         ssm=ssm,
         mapping="flatten",
@@ -164,12 +164,12 @@ def test_external_flatten_writes_a_target_named_ssv(tmp_path: Path) -> None:
 
 
 def test_external_flatten_uses_the_ssv_name_by_default(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         ssm=ssm,
         mapping="flatten",
@@ -180,12 +180,12 @@ def test_external_flatten_uses_the_ssv_name_by_default(tmp_path: Path) -> None:
 
 
 def test_external_flatten_honours_an_explicit_set_name(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         ssm=ssm,
         set_name="Calibration",
@@ -200,12 +200,12 @@ def test_external_flatten_honours_an_explicit_set_name(tmp_path: Path) -> None:
 
 
 def test_inline_attach_writes_member_named_values(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -230,21 +230,21 @@ def test_inline_attach_writes_member_named_values(tmp_path: Path) -> None:
 
 
 def test_inline_attach_requires_an_ssm(tmp_path: Path) -> None:
-    study, ssv, _ = _study(tmp_path)
+    analysis, ssv, _ = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     with pytest.raises(ValueError, match="names no scenario SSM"):
-        bind(_fixture_build(model, study), ssv, mode="inline")
+        bind(_fixture_build(model, analysis), ssv, mode="inline")
 
 
 def test_inline_flatten_writes_a_target_named_root_set(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -265,15 +265,15 @@ def test_inline_flatten_writes_a_target_named_root_set(tmp_path: Path) -> None:
 def test_attach_keeps_member_names_while_flatten_uses_target_names(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     attached = tmp_path / "attached"
     _write_model(attached)
     flattened = tmp_path / "flattened"
     _write_model(flattened)
 
-    bind(_fixture_build(attached, study), ssv, mode="inline", ssm=ssm)
+    bind(_fixture_build(attached, analysis), ssv, mode="inline", ssm=ssm)
     bind(
-        _fixture_build(flattened, study),
+        _fixture_build(flattened, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -287,7 +287,7 @@ def test_attach_keeps_member_names_while_flatten_uses_target_names(
 def test_inline_flatten_components_writes_only_listed_components(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(
+    analysis, ssv, ssm = _analysis(
         tmp_path,
         mappings=(
             ("height", "step.height"),
@@ -300,7 +300,7 @@ def test_inline_flatten_components_writes_only_listed_components(
     _write_model(model, nested=True)
 
     result = bind(
-        _fixture_build(model, study),
+        _fixture_build(model, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -330,7 +330,7 @@ def test_inline_flatten_components_writes_only_listed_components(
 def test_inline_flatten_components_rejects_an_unknown_component(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(
+    analysis, ssv, ssm = _analysis(
         tmp_path,
         mappings=(("height", "missing.value"),),
     )
@@ -339,7 +339,7 @@ def test_inline_flatten_components_rejects_an_unknown_component(
 
     with pytest.raises(KeyError, match="missing"):
         bind(
-            _fixture_build(model, study),
+            _fixture_build(model, analysis),
             ssv,
             mode="inline",
             ssm=ssm,
@@ -349,13 +349,13 @@ def test_inline_flatten_components_rejects_an_unknown_component(
 
 
 def test_components_are_rejected_with_external_mode(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     with pytest.raises(ValueError, match="only valid with mode='inline'"):
         bind(
-            _fixture_build(model, study),
+            _fixture_build(model, analysis),
             ssv,
             ssm=ssm,
             mapping="flatten",
@@ -364,13 +364,13 @@ def test_components_are_rejected_with_external_mode(tmp_path: Path) -> None:
 
 
 def test_components_are_rejected_with_attach(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
 
     with pytest.raises(ValueError, match="only valid with mapping='flatten'"):
         bind(
-            _fixture_build(model, study),
+            _fixture_build(model, analysis),
             ssv,
             mode="inline",
             ssm=ssm,
@@ -381,21 +381,21 @@ def test_components_are_rejected_with_attach(tmp_path: Path) -> None:
 def test_external_attach_rejects_a_non_system_structure_target(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(tmp_path, target_ssd="ModelStructure.ssd")
+    analysis, ssv, ssm = _analysis(tmp_path, target_ssd="ModelStructure.ssd")
     model = tmp_path / "model"
     _write_model(model)
 
     with pytest.raises(ValueError, match="SystemStructure.ssd"):
-        bind(_fixture_build(model, study), ssv, ssm=ssm)
+        bind(_fixture_build(model, analysis), ssv, ssm=ssm)
 
 
 def test_external_attach_rejects_a_model_with_root_bindings(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
-    build = _fixture_build(model, study)
+    build = _fixture_build(model, analysis)
 
     bind(build, ssv, ssm=ssm)
 
@@ -404,15 +404,15 @@ def test_external_attach_rejects_a_model_with_root_bindings(
 
 
 def test_external_attach_requires_an_exported_ssp_root(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
-    build = _fixture_build(tmp_path / "missing", study)
+    analysis, ssv, ssm = _analysis(tmp_path)
+    build = _fixture_build(tmp_path / "missing", analysis)
 
     with pytest.raises(NotADirectoryError, match="not a directory"):
         bind(build, ssv, ssm=ssm)
 
 
 def test_a_mapping_must_name_a_member_the_ssv_has(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(
+    analysis, ssv, ssm = _analysis(
         tmp_path,
         mappings=(("unknown", "step.height"),),
     )
@@ -421,7 +421,7 @@ def test_a_mapping_must_name_a_member_the_ssv_has(tmp_path: Path) -> None:
 
     with pytest.raises(KeyError, match="unknown"):
         bind(
-            _fixture_build(model, study),
+            _fixture_build(model, analysis),
             ssv,
             ssm=ssm,
             mapping="flatten",
@@ -431,7 +431,7 @@ def test_a_mapping_must_name_a_member_the_ssv_has(tmp_path: Path) -> None:
 def test_flatten_and_inline_attach_preserve_typed_parameters(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(
+    analysis, ssv, ssm = _analysis(
         tmp_path,
         values={"enabled": True, "count": 3},
         value_types={"enabled": "Boolean", "count": "Integer"},
@@ -440,7 +440,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
 
     external = tmp_path / "external"
     _write_model(external, nested=True)
-    bind(_fixture_build(external, study), ssv, ssm=ssm, mapping="flatten")
+    bind(_fixture_build(external, analysis), ssv, ssm=ssm, mapping="flatten")
     with SSV(external / "resources" / "Scenario.ssv", mode="r") as generated:
         assert {
             parameter.name: parameter.type_name
@@ -450,7 +450,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
     inline = tmp_path / "inline"
     _write_model(inline, nested=True)
     bind(
-        _fixture_build(inline, study),
+        _fixture_build(inline, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -465,7 +465,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
     per_component = tmp_path / "per_component"
     _write_model(per_component, nested=True)
     bind(
-        _fixture_build(per_component, study),
+        _fixture_build(per_component, analysis),
         ssv,
         mode="inline",
         ssm=ssm,
@@ -484,7 +484,7 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
 
     attached = tmp_path / "attached"
     _write_model(attached)
-    bind(_fixture_build(attached, study), ssv, mode="inline", ssm=ssm)
+    bind(_fixture_build(attached, analysis), ssv, mode="inline", ssm=ssm)
     with SSD(attached / "SystemStructure.ssd", mode="r") as ssd:
         assert _inline_types(ssd.system.parameter_bindings[0]) == {
             "enabled": "Boolean",
@@ -495,16 +495,16 @@ def test_flatten_and_inline_attach_preserve_typed_parameters(
 def test_inline_attach_rejects_a_non_system_structure_target(
     tmp_path: Path,
 ) -> None:
-    study, ssv, ssm = _study(tmp_path, target_ssd="ModelStructure.ssd")
+    analysis, ssv, ssm = _analysis(tmp_path, target_ssd="ModelStructure.ssd")
     model = tmp_path / "model"
     _write_model(model)
 
     with pytest.raises(ValueError, match="SystemStructure.ssd"):
-        bind(_fixture_build(model, study), ssv, mode="inline", ssm=ssm)
+        bind(_fixture_build(model, analysis), ssv, mode="inline", ssm=ssm)
 
 
 def test_bind_surfaces_a_resource_collision(tmp_path: Path) -> None:
-    study, ssv, ssm = _study(tmp_path)
+    analysis, ssv, ssm = _analysis(tmp_path)
     model = tmp_path / "model"
     _write_model(model)
     resources = model / "resources"
@@ -512,4 +512,4 @@ def test_bind_surfaces_a_resource_collision(tmp_path: Path) -> None:
     (resources / "Scenario.ssv").write_text("different bytes", encoding="utf-8")
 
     with pytest.raises(FileExistsError, match="Scenario.ssv"):
-        bind(_fixture_build(model, study), ssv, ssm=ssm)
+        bind(_fixture_build(model, analysis), ssv, ssm=ssm)

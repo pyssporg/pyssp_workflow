@@ -36,11 +36,11 @@ All three run the `pyssp` CLI through `pyssp_workflow.authoring` and use
     `pyssp`, optional `fmu_root`.
   - Output: absolute path to the derived SSP.
   - Delegates to `derive_ssp_from_sysml`.
-- **`derive_study`**
+- **`derive_analysis`**
   - Inputs: `architecture_path`, `output_dir`, `composition`, required
     keyword `model_name`, optional `pyssp`.
-  - Output: absolute path to the derived study.
-  - Delegates to `derive_study_from_sysml`.
+  - Output: absolute path to the derived analysis.
+  - Delegates to `derive_analysis_from_sysml`.
 
 ### Evidence group
 

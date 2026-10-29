@@ -28,12 +28,12 @@ FILE_LEVELS = {
     "test_layering.py": "level_static",
     "test_markers.py": "level_static",
     "test_nodes_import.py": "level_static",
-    "test_study.py": "level_component",
+    "test_analysis.py": "level_component",
 }
 
 
 def write_scenario(
-    study_dir: Path,
+    analysis_dir: Path,
     *,
     with_scenario: bool = True,
     model_source: str | None = None,
@@ -42,13 +42,13 @@ def write_scenario(
     mappings: tuple[tuple[str, str], ...] | None = None,
     target_ssd: str = "SystemStructure.ssd",
 ) -> Path:
-    """Write one study directory: ``study.json`` plus its optional SSV and SSM."""
-    study_dir.mkdir()
+    """Write one analysis directory: ``analysis.json`` plus its optional SSV and SSM."""
+    analysis_dir.mkdir()
     values = values or {"height": 2.0, "k": 3.0}
     value_types = value_types or {}
     mappings = mappings or (("height", "step.height"), ("k", "gain.k"))
     if with_scenario:
-        with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
+        with SSV(analysis_dir / "Scenario.ssv", mode="w") as ssv:
             ssv.xml.name = "Scenario"
             for name, value in values.items():
                 ssv.xml.add_parameter(
@@ -56,7 +56,7 @@ def write_scenario(
                     ptype=value_types.get(name, "Real"),
                     value=value,
                 )
-        with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
+        with SSM(analysis_dir / "test_baseline.ssm", mode="w") as ssm:
             for source, target in mappings:
                 ssm.xml.add_mapping(source, target)
     descriptor = {
@@ -64,7 +64,7 @@ def write_scenario(
         "composition": "System",
         "sut": "sut",
         "target_ssd": target_ssd,
-        "study": "test_baseline",
+        "analysis": "test_baseline",
         "experiment": {
             "name": "baseline",
             "start_time": 0.0,
@@ -80,6 +80,6 @@ def write_scenario(
         }
     if model_source is not None:
         descriptor["model_source"] = model_source
-    path = study_dir / "study.json"
+    path = analysis_dir / "analysis.json"
     path.write_text(json.dumps(descriptor), encoding="utf-8")
     return path

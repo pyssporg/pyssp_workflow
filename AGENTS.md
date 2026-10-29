@@ -33,7 +33,7 @@ node-ready work units, and owns the decisions that only exist at that level:
 what runs, in what order, where artifacts go, and what counts as one unit of
 retry. It does not implement the capabilities it composes.
 
-- Plain functions cover authoring, binding, study descriptors and scenarios,
+- Plain functions cover authoring, binding, analysis descriptors and scenarios,
   result comparison, and fixture paths; `nodes` adds scheduling policy.
 - The capabilities live in the `3rd_party/` submodules; this package calls them.
 

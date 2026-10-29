@@ -42,11 +42,11 @@ surfaces and does not reach into producer internals.
 | Module | Purpose | May import | Must not |
 | --- | --- | --- | --- |
 | `nodes` | scheduling policy over domain functions | `sequence_extensions`, every internal module, all of `pyssp_vv` | implement measurement or judgment |
-| `authoring` | SysML derivation, study and fixture builds, Modelica FMU build | stdlib, subprocess, `pyssp_standard`, `fixture`, `study` | `pyssp_vv`, `pyssp_sysml2` |
-| `binding` | `bind` writes one scenario binding, chosen by `mode`/`mapping`/`components`, into a built SSP and returns a `BindingResult` | `pyssp_standard`, `fixture` | `pyssp_vv`, `study`, reimplement SSP assembly |
+| `authoring` | SysML derivation, analysis and fixture builds, Modelica FMU build | stdlib, subprocess, `pyssp_standard`, `fixture`, `analysis` | `pyssp_vv`, `pyssp_sysml2` |
+| `binding` | `bind` writes one scenario binding, chosen by `mode`/`mapping`/`components`, into a built SSP and returns a `BindingResult` | `pyssp_standard`, `fixture` | `pyssp_vv`, `analysis`, reimplement SSP assembly |
 | `compare` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
-| `fixture` | `BuiltFixture` record and artifact path helpers | `study` | perform a build or read a scenario |
-| `study` | study descriptor and standardized scenario artifacts as plain data | `pyssp_standard` | `pyssp_vv`, rewrite an SSV or SSM |
+| `fixture` | `BuiltFixture` record and artifact path helpers | `analysis` | perform a build or read a scenario |
+| `analysis` | analysis descriptor and standardized scenario artifacts as plain data | `pyssp_standard` | `pyssp_vv`, rewrite an SSV or SSM |
 
 Enforced by `tests/test_layering.py`.
 

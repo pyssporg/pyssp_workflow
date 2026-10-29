@@ -15,12 +15,12 @@ FLOW_LAYER = "nodes"
 
 #: The internal modules each layer may import, from the bottom up.
 INTERNAL_DEPENDENCIES = {
-    "fixture": frozenset({"study"}),
-    "study": frozenset(),
-    "authoring": frozenset({"fixture", "study"}),
-    "binding": frozenset({"fixture", "study"}),
+    "fixture": frozenset({"analysis"}),
+    "analysis": frozenset(),
+    "authoring": frozenset({"fixture", "analysis"}),
+    "binding": frozenset({"fixture", "analysis"}),
     "compare": frozenset(),
-    "nodes": frozenset({"fixture", "study", "authoring", "binding", "compare"}),
+    "nodes": frozenset({"fixture", "analysis", "authoring", "binding", "compare"}),
 }
 
 #: Only the node layer may decide acceptability; there is no CLI layer.

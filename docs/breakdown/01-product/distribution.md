@@ -60,7 +60,7 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
 - Pre-alpha `0.1.0`.
 - Module surfaces, dependency rules, node contract, and catalog are
   established.
-- `authoring`, `binding`, `compare`, `study`, `fixture` are implemented.
+- `authoring`, `binding`, `compare`, `analysis`, `fixture` are implemented.
 - The optional node layer wraps SysML derivation and evidence writing.
 
 ## Owns

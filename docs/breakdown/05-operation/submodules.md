@@ -14,7 +14,7 @@ gitlink in the parent commit pins the revision the package was tested with.
 
 | Path | Upstream | Used by |
 | --- | --- | --- |
-| `3rd_party/pyssp_standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `study`, `binding` |
+| `3rd_party/pyssp_standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
 | `3rd_party/pyssp_simulate` | `pyssporg/pyssp_simulate` | `compare` |
 | `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
 | `3rd_party/pyssp_vv` | `pyssporg/pyssp_vv` | `compare` (measure, evidence), `nodes` (judge, evidence) |

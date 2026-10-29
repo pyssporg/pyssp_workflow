@@ -61,7 +61,7 @@ def bind(
             f"SystemStructure.ssd, not '{build.descriptor.target_ssd}'"
         )
     if mode == "inline" and mapping == "attach" and ssm is None:
-        raise ValueError(f"Study scenario '{ssv}' names no scenario SSM")
+        raise ValueError(f"Analysis scenario '{ssv}' names no scenario SSM")
 
     with SSV(ssv, mode="r") as document:
         name = set_name if set_name is not None else document.name or ssv.stem

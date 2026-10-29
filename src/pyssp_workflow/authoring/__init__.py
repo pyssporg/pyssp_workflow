@@ -9,12 +9,12 @@ The build steps reset their output directory and leave their inputs untouched:
 ``architecture_dir`` and the legacy ``source_dir`` are read-only.
 """
 
-from pyssp_workflow.authoring.build import build_fixture, build_model, build_study
+from pyssp_workflow.authoring.build import build_analysis, build_fixture, build_model
 from pyssp_workflow.authoring.derive import (
     DEFAULT_TIMEOUT_SECONDS,
+    derive_analysis_from_sysml,
     derive_ssd_from_sysml,
     derive_ssp_from_sysml,
-    derive_study_from_sysml,
 )
 from pyssp_workflow.authoring.fmu import build_fmu_from_modelica
 from pyssp_workflow.authoring.legacy import build_legacy_fixture, build_legacy_model
@@ -27,9 +27,9 @@ __all__ = [
     "build_legacy_fixture",
     "build_legacy_model",
     "build_model",
-    "build_study",
+    "build_analysis",
     "derive_ssd_from_sysml",
     "derive_ssp_from_sysml",
-    "derive_study_from_sysml",
+    "derive_analysis_from_sysml",
     "report_builds",
 ]

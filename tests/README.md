@@ -22,7 +22,7 @@ under test and the `support` / `fixture_guard` helpers directly.
 
 - **This suite commits no data files.** `support.write_scenario` builds
   scenarios into `tmp_path` from the public facades (`pyssp_standard.SSV`,
-  `pyssp_standard.SSM`, and `study.json`); model files and result CSVs are
+  `pyssp_standard.SSM`, and `analysis.json`); model files and result CSVs are
   written by small `_write_*` helpers into the caller's `tmp_path` tree.
 - **A test never writes into the checkout.** Every write target is derived
   from a `tmp_path` argument. `tests/test_fixture_policy.py` parses the test

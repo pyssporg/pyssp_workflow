@@ -24,20 +24,20 @@ from pyssp_workflow.fixture import BuiltFixture
 OMC = shutil.which("omc")
 
 
-def _write_study_artifacts(study_dir: Path) -> None:
-    study_dir.mkdir(parents=True, exist_ok=True)
-    with SSV(study_dir / "Scenario.ssv", mode="w") as ssv:
+def _write_analysis_artifacts(analysis_dir: Path) -> None:
+    analysis_dir.mkdir(parents=True, exist_ok=True)
+    with SSV(analysis_dir / "Scenario.ssv", mode="w") as ssv:
         ssv.xml.name = "Scenario"
         ssv.xml.add_parameter("height", ptype="Real", value=2.0)
-    with SSM(study_dir / "test_baseline.ssm", mode="w") as ssm:
+    with SSM(analysis_dir / "test_baseline.ssm", mode="w") as ssm:
         ssm.xml.add_mapping("height", "step.height")
-    (study_dir / "study.json").write_text(
+    (analysis_dir / "analysis.json").write_text(
         json.dumps(
             {
                 "model": "demo",
                 "composition": "System",
                 "sut": "sut",
-                "study": "test_baseline",
+                "analysis": "test_baseline",
                 "experiment": {
                     "name": "baseline",
                     "start_time": 0.0,
@@ -72,7 +72,7 @@ def _stub_derivations(
     derivations_seen: list[tuple[str, str]] | None = None,
     selections_seen: list[tuple[str, dict[str, str] | None]] | None = None,
 ) -> None:
-    def fake_study(
+    def fake_analysis(
         architecture_path,
         output_dir,
         composition,
@@ -83,15 +83,15 @@ def _stub_derivations(
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
         selections=None,
     ):
-        calls.append("study")
+        calls.append("analysis")
         if selections_seen is not None:
-            selections_seen.append(("study", selections))
+            selections_seen.append(("analysis", selections))
         assert Path(architecture_path).is_dir()
         assert model_name == "demo"
         if derivations_seen is not None:
             derivations_seen.append((composition, model_name))
-        _write_study_artifacts(Path(output_dir))
-        return Path(output_dir) / "study.json"
+        _write_analysis_artifacts(Path(output_dir))
+        return Path(output_dir) / "analysis.json"
 
     def fake_ssp(
         architecture_path,
@@ -115,7 +115,7 @@ def _stub_derivations(
         _write_ssp_archive(Path(output_path))
         return Path(output_path)
 
-    monkeypatch.setattr(authoring_build, "derive_study_from_sysml", fake_study)
+    monkeypatch.setattr(authoring_build, "derive_analysis_from_sysml", fake_analysis)
     monkeypatch.setattr(authoring_build, "derive_ssp_from_sysml", fake_ssp)
 
 
@@ -125,7 +125,7 @@ def _fixture_dir(tmp_path: Path) -> Path:
     return model_dir
 
 
-def test_build_fixture_runs_study_then_model_without_packaging(
+def test_build_fixture_runs_analysis_then_model_without_packaging(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     calls: list[str] = []
@@ -138,22 +138,22 @@ def test_build_fixture_runs_study_then_model_without_packaging(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline",),
+        analyses=("test_baseline",),
     )
 
-    assert calls == ["study", "model"]
+    assert calls == ["analysis", "model"]
     assert derivations_seen == [("test_baseline", "demo")]
     build = builds["test_baseline"]
     assert isinstance(build, BuiltFixture)
     assert build.model_name == "demo"
-    assert build.study == "test_baseline"
-    assert build.study_dir == (
-        tmp_path / "artifacts" / "studies" / "demo" / "test_baseline"
+    assert build.analysis == "test_baseline"
+    assert build.analysis_dir == (
+        tmp_path / "artifacts" / "analyses" / "demo" / "test_baseline"
     )
     assert build.model_dir == (
         tmp_path / "artifacts" / "models" / "demo" / "test_baseline" / "model"
     )
-    assert build.descriptor.study == "test_baseline"
+    assert build.descriptor.analysis == "test_baseline"
     assert not (build.model_dir / "resources").exists()
 
 
@@ -167,7 +167,7 @@ def test_bind_external_attach_packages_a_built_record(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline",),
+        analyses=("test_baseline",),
     )
 
     build = builds["test_baseline"]
@@ -178,7 +178,9 @@ def test_bind_external_attach_packages_a_built_record(
     assert (output / "resources" / "test_baseline.ssm").is_file()
 
 
-def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_fixture_builds_every_analysis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     calls: list[str] = []
     derivations_seen: list[str] = []
     _stub_derivations(monkeypatch, calls, derivations_seen)
@@ -189,16 +191,16 @@ def test_build_fixture_builds_every_study(tmp_path: Path, monkeypatch: pytest.Mo
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline", "second"),
+        analyses=("test_baseline", "second"),
     )
 
-    assert calls == ["study", "model", "study", "model"]
-    # The study build derives the Study composition; only the model build
+    assert calls == ["analysis", "model", "analysis", "model"]
+    # The analysis build derives the Analysis composition; only the model build
     # derives the SspModel composition.
     assert derivations_seen == [("test_baseline", "demo"), ("second", "demo")]
     assert sorted(builds) == ["second", "test_baseline"]
-    assert builds["second"].study == "second"
-    assert builds["second"].study_dir.name == "second"
+    assert builds["second"].analysis == "second"
+    assert builds["second"].analysis_dir.name == "second"
 
 
 def test_artifacts_root_defaults_to_repo_root_and_is_never_the_cwd(
@@ -215,13 +217,13 @@ def test_artifacts_root_defaults_to_repo_root_and_is_never_the_cwd(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline",),
+        analyses=("test_baseline",),
     )
 
     assert builds["test_baseline"].model_dir == (
         tmp_path / "artifacts" / "models" / "demo" / "test_baseline" / "model"
     )
-    assert (tmp_path / "artifacts" / "studies" / "demo" / "test_baseline").is_dir()
+    assert (tmp_path / "artifacts" / "analyses" / "demo" / "test_baseline").is_dir()
 
 
 def test_artifacts_root_is_honoured(
@@ -236,7 +238,7 @@ def test_artifacts_root_is_honoured(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline",),
+        analyses=("test_baseline",),
         artifacts_root=artifacts,
     )
 
@@ -256,7 +258,7 @@ def test_each_build_record_is_packaged_explicitly(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("test_baseline", "second"),
+        analyses=("test_baseline", "second"),
     )
     for build in builds.values():
         bind(build, build.descriptor.ssv_path, ssm=build.descriptor.ssm_path)
@@ -266,7 +268,7 @@ def test_each_build_record_is_packaged_explicitly(
         assert (build.model_dir / "resources" / "test_baseline.ssm").is_file()
 
 
-def test_report_builds_prints_one_line_per_study(
+def test_report_builds_prints_one_line_per_analysis(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
     _stub_derivations(monkeypatch, [])
@@ -277,7 +279,7 @@ def test_report_builds_prints_one_line_per_study(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("a", "b"),
+        analyses=("a", "b"),
     )
     status = report_builds(builds)
 
@@ -330,8 +332,8 @@ def _record_generate_argv(
 
     def fake_run(pyssp, argv, timeout):
         arguments.append(list(argv))
-        if "study" in argv:
-            _write_study_artifacts(Path(argv[argv.index("--output-dir") + 1]))
+        if "analysis" in argv:
+            _write_analysis_artifacts(Path(argv[argv.index("--output-dir") + 1]))
         return ""
 
     monkeypatch.setattr(authoring_derive, "_run_pyssp", fake_run)
@@ -353,9 +355,9 @@ def test_select_pairs_are_sorted_and_omitted_when_unselected(
     authoring_derive.derive_ssp_from_sysml(
         architecture, tmp_path / "out.ssp", "System", selections=selections
     )
-    authoring_derive.derive_study_from_sysml(
+    authoring_derive.derive_analysis_from_sysml(
         architecture,
-        tmp_path / "study",
+        tmp_path / "analysis",
         "System",
         model_name="demo",
         selections=selections,
@@ -377,7 +379,7 @@ def test_select_pairs_are_sorted_and_omitted_when_unselected(
     assert "--select" not in arguments[4]
 
 
-def test_build_fixture_passes_each_study_only_its_own_selection(
+def test_build_fixture_passes_each_analysis_only_its_own_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     selections_seen: list[tuple[str, dict[str, str] | None]] = []
@@ -385,7 +387,7 @@ def test_build_fixture_passes_each_study_only_its_own_selection(
         monkeypatch, [], selections_seen=selections_seen
     )
     model_dir = _fixture_dir(tmp_path)
-    study_selection = {"sut.path.stage": "attenuateStage"}
+    analysis_selection = {"sut.path.stage": "attenuateStage"}
     model_selection = {"path.stage": "attenuateStage"}
 
     build_fixture(
@@ -393,16 +395,16 @@ def test_build_fixture_passes_each_study_only_its_own_selection(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("a", "b"),
+        analyses=("a", "b"),
         selections={
-            "b": {"study": study_selection, "model": model_selection},
+            "b": {"analysis": analysis_selection, "model": model_selection},
         },
     )
 
     assert selections_seen == [
-        ("study", None),
+        ("analysis", None),
         ("model", None),
-        ("study", study_selection),
+        ("analysis", analysis_selection),
         ("model", model_selection),
     ]
 
@@ -421,26 +423,26 @@ def test_build_fixture_accepts_one_scope_and_rejects_an_unknown_scope(
         repo_root=tmp_path,
         model_name="demo",
         composition="System",
-        studies=("a",),
-        selections={"a": {"study": {"sut.path": "direct"}}},
+        analyses=("a",),
+        selections={"a": {"analysis": {"sut.path": "direct"}}},
     )
     assert selections_seen == [
-        ("study", {"sut.path": "direct"}),
+        ("analysis", {"sut.path": "direct"}),
         ("model", None),
     ]
 
-    with pytest.raises(ValueError, match="allowed scopes: study, model"):
+    with pytest.raises(ValueError, match="allowed scopes: analysis, model"):
         build_fixture(
             model_dir=model_dir,
             repo_root=tmp_path,
             model_name="demo",
             composition="System",
-            studies=("a",),
+            analyses=("a",),
             selections={"a": {"bogus": {"path": "direct"}}},
         )
 
 
-def test_build_fixture_rejects_a_selection_for_an_unknown_study(
+def test_build_fixture_rejects_a_selection_for_an_unknown_analysis(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _stub_derivations(monkeypatch, [])
@@ -452,8 +454,8 @@ def test_build_fixture_rejects_a_selection_for_an_unknown_study(
             repo_root=tmp_path,
             model_name="demo",
             composition="System",
-            studies=("a",),
-            selections={"unknown": {"study": {"variant": "two"}}},
+            analyses=("a",),
+            selections={"unknown": {"analysis": {"variant": "two"}}},
         )
 
 

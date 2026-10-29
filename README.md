@@ -24,11 +24,11 @@ authoring ──> binding ──> simulate ──> compare
  (builds)     (SSP params)  (external)   (pyssp_vv.measure)
 ```
 
-A study descriptor names the scenario SSV and SSM and the experiment window.
-`authoring` turns the SysML architecture into a study and an exported model SSP;
-`build_fixture` returns one `BuiltFixture` per study, with the artifact paths
-under `artifacts/studies/<model>/<study>` and
-`artifacts/models/<model>/<study>/<build_name>`. `binding` writes the chosen
+An analysis descriptor names the scenario SSV and SSM and the experiment window.
+`authoring` turns the SysML architecture into an analysis and an exported model
+SSP; `build_fixture` returns one `BuiltFixture` per analysis, with the artifact
+paths under `artifacts/analyses/<model>/<analysis>` and
+`artifacts/models/<model>/<analysis>/<build_name>`. `binding` writes the chosen
 scenario binding into the built SSP, which is then run by `pyssp_simulate`.
 `compare` measures one candidate result CSV against a reference and writes
 `metrics.csv`; it produces no verdict.
@@ -41,14 +41,14 @@ flow engine.
 
 | Module | Surface |
 | --- | --- |
-| `authoring` | SysML derivation through the `pyssp` CLI, study/model/fixture builds, legacy checked-in SSP builds, Modelica FMU build, build reporting |
+| `authoring` | SysML derivation through the `pyssp` CLI, analysis/model/fixture builds, legacy checked-in SSP builds, Modelica FMU build, build reporting |
 | `binding` | `bind`, which writes one scenario binding into a built SSP and returns a `BindingResult` |
 | `compare` | `ResultRef`, `ComparisonRequest`, `ComparisonRecord`, and `compare_csvs` |
-| `study` | `Experiment`, `StudyDescriptor`, `read_study_descriptor`, `Scenario`, `read_scenario`, `scenario_targets` |
-| `fixture` | `BuiltFixture` and the `artifacts_root`, `study_dir`, and `model_dir` path helpers |
-| `nodes` | optional scheduling wrappers: `derive_ssd`, `derive_ssp`, `derive_study`, `write_bundle` |
+| `analysis` | `Experiment`, `AnalysisDescriptor`, `read_analysis_descriptor`, `Scenario`, `read_scenario`, `scenario_targets` |
+| `fixture` | `BuiltFixture` and the `artifacts_root`, `analysis_dir`, and `model_dir` path helpers |
+| `nodes` | optional scheduling wrappers: `derive_ssd`, `derive_ssp`, `derive_analysis`, `write_bundle` |
 
-`compare` reads result CSVs by path and `study` reads the descriptor and scenario
+`compare` reads result CSVs by path and `analysis` reads the descriptor and scenario
 artifacts by path; both return plain records. `binding` reads the scenario SSV
 and SSM as read-only inputs. Measurement and judgment stay in `pyssp_vv`,
 simulation in `pyssp_simulate`, and SSP assembly in `pyssp_standard`.
@@ -89,7 +89,7 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
 ## Status
 
 Pre-alpha (`0.1.0`). The module surfaces, dependency rules, node contract, and
-catalog are established. `authoring`, `binding`, `compare`, `study`, and `fixture`
+catalog are established. `authoring`, `binding`, `compare`, `analysis`, and `fixture`
 are implemented; the optional node layer wraps SysML derivation and evidence
 writing.
 

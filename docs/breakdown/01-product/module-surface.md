@@ -13,24 +13,24 @@ The package exposes six module surfaces. Each returns plain records or paths.
 
 ## Modules
 
-- **`authoring`**: SysML derivation through the `pyssp` CLI, study, model, and
-  fixture builds, legacy checked-in SSP builds, Modelica FMU build, build
+- **`authoring`**: SysML derivation through the `pyssp` CLI, analysis, model,
+  and fixture builds, legacy checked-in SSP builds, Modelica FMU build, build
   reporting.
 - **`binding`**: `bind`, which dispatches one scenario binding into a built SSP
   through `SSP.bind_parameters` and returns a `BindingResult`.
 - **`compare`**: `ResultRef`, `ComparisonRequest`, `ComparisonRecord`,
   `compare_csvs`.
-- **`study`**: `Experiment`, `StudyDescriptor`, `read_study_descriptor`,
+- **`analysis`**: `Experiment`, `AnalysisDescriptor`, `read_analysis_descriptor`,
   `Scenario`, `read_scenario`, `scenario_targets`.
-- **`fixture`**: `BuiltFixture` and the `artifacts_root`, `study_dir`,
+- **`fixture`**: `BuiltFixture` and the `artifacts_root`, `analysis_dir`,
   `model_dir` path helpers.
 - **`nodes`**: optional scheduling wrappers `derive_ssd`, `derive_ssp`,
-  `derive_study`, `write_bundle`.
+  `derive_analysis`, `write_bundle`.
 
 ## Data at the borders
 
 - `compare` reads result CSVs by path.
-- `study` reads the descriptor and scenario artifacts by path.
+- `analysis` reads the descriptor and scenario artifacts by path.
 - Both return plain records.
 - `binding` reads the scenario SSV and SSM as read-only inputs.
 - Measurement and judgment stay in `pyssp_vv`.

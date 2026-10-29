@@ -25,8 +25,8 @@ WRITE_METHODS = {"write_text", "write_bytes", "write_parquet"}
 #: Functions that write to a caller-supplied path and therefore carry no
 #: ``tmp_path``; each caller in the suite passes a ``tmp_path`` child.
 TMP_PATH_FREE_WRITES: dict[str, str] = {
-    "write_scenario": "target is the caller's study_dir; every caller passes a tmp_path child",
-    "_write_study_artifacts": "target is the caller's study_dir in tmp_path",
+    "write_scenario": "target is the caller's analysis_dir; every caller passes a tmp_path child",
+    "_write_analysis_artifacts": "target is the caller's analysis_dir in tmp_path",
     "_write_model_description": "target is a model path inside the caller's tmp_path tree",
     "_write_result_csv": "target is the caller's result path in tmp_path",
 }

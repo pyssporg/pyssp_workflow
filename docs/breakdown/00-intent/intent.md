@@ -24,7 +24,7 @@ It does **not** contain the core of any of those capabilities.
 | Belongs here | Belongs elsewhere |
 | --- | --- |
 | node wrappers and scheduling policy | metrics and criteria (`pyssp_vv`) |
-| study records, binding results, and comparison records as plain data | engine calls (`pyssp_simulate`) |
+| analysis records, binding results, and comparison records as plain data | engine calls (`pyssp_simulate`) |
 | artifact paths and ownership | SSP XML (`pyssp_standard`) |
 | adapter calls to external CLIs | SysML conversion (`pyssp_sysml2`) |
 
@@ -47,7 +47,7 @@ It does **not** contain the core of any of those capabilities.
   import `pyssp_vv`.
 - **Nodes are optional.** The package installs without a flow engine; the
   `flow` extra adds it.
-- **Public modules are explicit.** `authoring`, `binding`, `compare`, `study`,
+- **Public modules are explicit.** `authoring`, `binding`, `compare`, `analysis`,
   `fixture`, and the optional `nodes` layer are the public module surfaces. The
   package top-level import stays dependency-free so optional capabilities remain
   optional.

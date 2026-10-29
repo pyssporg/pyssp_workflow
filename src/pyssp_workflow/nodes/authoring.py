@@ -8,9 +8,9 @@ from sequence_extensions.flow import node
 
 from pyssp_workflow.authoring import (
     DEFAULT_TIMEOUT_SECONDS,
+    derive_analysis_from_sysml,
     derive_ssd_from_sysml,
     derive_ssp_from_sysml,
-    derive_study_from_sysml,
 )
 
 
@@ -53,7 +53,7 @@ def derive_ssp(
 
 
 @node(timeout=DEFAULT_TIMEOUT_SECONDS)
-def derive_study(
+def derive_analysis(
     architecture_path: str,
     output_dir: str,
     composition: str,
@@ -62,7 +62,7 @@ def derive_study(
     pyssp: str | None = None,
 ) -> str:
     return str(
-        derive_study_from_sysml(
+        derive_analysis_from_sysml(
             Path(architecture_path),
             Path(output_dir),
             composition,
