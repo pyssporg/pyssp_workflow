@@ -84,12 +84,14 @@ def derive_ssp_from_sysml(
     type_check: bool = True,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
+    configuration: str | None = None,
 ) -> Path:
     """Export one ``SspModel`` composition as an SSP archive.
 
     ``selections`` resolves SysML variation points at build time only; pass the
     same selection that the analysis derivation receives so the SSP agrees with
-    the SSV/SSM.
+    the SSV/SSM. ``configuration`` names the SysML configuration that produced
+    that selection and is recorded in the archive's provenance.
     """
     output = Path(output_path)
     arguments = [
@@ -113,6 +115,8 @@ def derive_ssp_from_sysml(
     if not type_check:
         arguments.append("--skip_type_check")
     arguments.extend(_selection_arguments(selections))
+    if configuration:
+        arguments.extend(["--configuration", configuration])
     _run_pyssp(pyssp, arguments, timeout)
     return output
 

@@ -61,6 +61,7 @@ def build_model(
     pyssp: str | Path | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
+    configuration: str | None = None,
 ) -> Path:
     """Export the model SSP into ``model_dir`` and unpack its FMUs.
 
@@ -68,7 +69,8 @@ def build_model(
     ``fmu_root`` are read-only. Model-exchange metadata is stripped from every
     unpacked FMU. Returns ``model_dir``. ``selections`` resolves SysML variation
     points in ``composition`` at build time only; the counterpart selection must
-    reach :func:`build_analysis` so the SSD and the SSV/SSM agree.
+    reach :func:`build_analysis` so the SSD and the SSV/SSM agree. The archive
+    provenance names ``configuration`` when one authored the selection.
     """
     architecture = Path(architecture_dir)
     model = Path(model_dir)
@@ -85,6 +87,7 @@ def build_model(
             pyssp=pyssp,
             timeout=timeout,
             selections=selections,
+            configuration=configuration,
         )
         unpack_archive(
             archive,
@@ -108,6 +111,7 @@ def _build_one(
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
     selections: Mapping[str, Mapping[str, str]] | None = None,
+    configurations: Mapping[str, str | None] | None = None,
 ) -> fixture.BuiltFixture:
     """Build one analysis and its exported model SSP; packaging is not applied.
 
@@ -115,7 +119,9 @@ def _build_one(
     map. That map reaches both :func:`build_analysis` and :func:`build_model`
     unchanged; the adapter resolves a key relative to the composition being
     generated (``path`` in the model, ``sut.path`` in the analysis). Selection
-    is build-time only.
+    is build-time only. ``configurations`` maps an analysis name to the SysML
+    configuration that produced its selection; it reaches only the model build's
+    provenance.
     """
     model = Path(model_dir)
     name = model_name or model.name
@@ -124,6 +130,7 @@ def _build_one(
     analysis_dir = fixture.analysis_dir(artifacts, name, analysis)
     model_build_dir = fixture.model_dir(artifacts, name, analysis, build_name)
     scoped = (selections or {}).get(analysis)
+    configuration = (configurations or {}).get(analysis)
 
     build_analysis(
         architecture_dir,
@@ -141,6 +148,7 @@ def _build_one(
         validate_fmus=validate_fmus,
         pyssp=pyssp,
         selections=scoped,
+        configuration=configuration,
     )
 
     descriptor = read_analysis_descriptor(analysis_dir / "analysis.json")
@@ -165,6 +173,7 @@ def build_fixture(
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
     selections: Mapping[str, Mapping[str, str]] | None = None,
+    configurations: Mapping[str, str | None] | None = None,
 ) -> dict[str, fixture.BuiltFixture]:
     """Build one analysis and exported model SSP per analysis, keyed by analysis name.
 
@@ -178,15 +187,21 @@ def build_fixture(
     (``{"source": "stepImplementation"}``). The same map reaches both
     :func:`build_analysis` and :func:`build_model`; the adapter resolves a key
     relative to the composition being generated, so the caller does not build a
-    second scope. ``analyses`` remains the source of truth for which analyses
-    exist; an unknown analysis name raises ``ValueError``. A missing map means
-    that build runs on the analysis's authored selection. Selection is
+    second scope. ``configurations`` maps an analysis name to the SysML
+    configuration that produced its selection, recorded as model SSP provenance;
+    an entry with value ``None`` means the analysis composes the root.
+    ``analyses`` remains the source of truth for which analyses exist; an
+    unknown analysis name raises ``ValueError`` in either map. A missing map
+    means that build runs on the analysis's authored selection. Selection is
     build-time only.
     """
-    unknown = sorted(set(selections or ()) - set(analyses))
+    unknown = sorted(
+        (set(selections or ()) | set(configurations or ())) - set(analyses)
+    )
     if unknown:
         raise ValueError(
-            "selections name analyses that are not built: " + ", ".join(unknown)
+            "selections or configurations name analyses that are not built: "
+            + ", ".join(unknown)
         )
     return {
         analysis: _build_one(
@@ -200,6 +215,7 @@ def build_fixture(
             validate_fmus=validate_fmus,
             pyssp=pyssp,
             selections=selections,
+            configurations=configurations,
         )
         for analysis in analyses
     }

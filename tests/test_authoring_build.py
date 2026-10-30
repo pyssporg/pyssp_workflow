@@ -71,6 +71,7 @@ def _stub_derivations(
     calls: list[str],
     derivations_seen: list[tuple[str, str]] | None = None,
     selections_seen: list[tuple[str, dict[str, str] | None]] | None = None,
+    configurations_seen: list[tuple[str, str | None]] | None = None,
 ) -> None:
     def fake_analysis(
         architecture_path,
@@ -106,10 +107,13 @@ def _stub_derivations(
         type_check=True,
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
         selections=None,
+        configuration=None,
     ):
         calls.append("model")
         if selections_seen is not None:
             selections_seen.append(("model", selections))
+        if configurations_seen is not None:
+            configurations_seen.append(("model", configuration))
         assert Path(architecture_path).is_dir()
         assert composition == "System"
         _write_ssp_archive(Path(output_path))
@@ -379,6 +383,38 @@ def test_select_pairs_are_sorted_and_omitted_when_unselected(
     assert "--select" not in arguments[4]
 
 
+@pytest.mark.level_contract
+def test_ssp_derivation_appends_the_configuration_after_the_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+
+    authoring_derive.derive_ssp_from_sysml(
+        architecture,
+        tmp_path / "configured.ssp",
+        "System",
+        selections={"source": "step"},
+        configuration="StepSystem",
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "plain.ssp", "System"
+    )
+    authoring_derive.derive_analysis_from_sysml(
+        architecture,
+        tmp_path / "analysis",
+        "System",
+        model_name="demo",
+        selections={"source": "step"},
+    )
+
+    assert arguments[0][-2:] == ["--configuration", "StepSystem"]
+    assert "--configuration" not in arguments[1]
+    # The analysis descriptor has no selection record, so it takes no name.
+    assert "--configuration" not in arguments[2]
+
+
 def test_build_fixture_passes_each_analysis_only_its_own_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -444,6 +480,64 @@ def test_build_fixture_rejects_a_selection_for_an_unknown_analysis(
             composition="System",
             analyses=("a",),
             selections={"unknown": {"variant": "two"}},
+        )
+
+
+def test_build_fixture_passes_each_analysis_only_its_own_configuration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configurations_seen: list[tuple[str, str | None]] = []
+    _stub_derivations(
+        monkeypatch, [], configurations_seen=configurations_seen
+    )
+    model_dir = _fixture_dir(tmp_path)
+
+    build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        analyses=("a", "b"),
+        configurations={"b": "StepSystem"},
+    )
+
+    assert configurations_seen == [("model", None), ("model", "StepSystem")]
+
+
+def test_build_fixture_defaults_every_configuration_to_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configurations_seen: list[tuple[str, str | None]] = []
+    _stub_derivations(
+        monkeypatch, [], configurations_seen=configurations_seen
+    )
+    model_dir = _fixture_dir(tmp_path)
+
+    build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        analyses=("a", "b"),
+    )
+
+    assert configurations_seen == [("model", None), ("model", None)]
+
+
+def test_build_fixture_rejects_a_configuration_for_an_unknown_analysis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_derivations(monkeypatch, [])
+    model_dir = _fixture_dir(tmp_path)
+
+    with pytest.raises(ValueError, match="unknown"):
+        build_fixture(
+            model_dir=model_dir,
+            repo_root=tmp_path,
+            model_name="demo",
+            composition="System",
+            analyses=("a",),
+            configurations={"unknown": "StepSystem"},
         )
 
 
