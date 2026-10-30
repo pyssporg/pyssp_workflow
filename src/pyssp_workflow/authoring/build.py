@@ -18,8 +18,6 @@ from pyssp_workflow.authoring.derive import (
     derive_ssp_from_sysml,
 )
 
-_SELECTION_SCOPES = ("analysis", "model")
-
 
 def build_analysis(
     architecture_dir: Path | str,
@@ -109,16 +107,15 @@ def _build_one(
     artifacts_root: Path | str | None = None,
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
-    selections: Mapping[str, Mapping[str, Mapping[str, str]]] | None = None,
+    selections: Mapping[str, Mapping[str, str]] | None = None,
 ) -> fixture.BuiltFixture:
     """Build one analysis and its exported model SSP; packaging is not applied.
 
-    ``selections`` is the fixture-wide map; this analysis's ``analysis`` entry reaches
-    :func:`build_analysis` and its ``model`` entry reaches :func:`build_model`.
-    They differ because a selection key is resolved relative to the composition
-    being generated: the analysis composes the model through ``part sut : System``,
-    so a structural point is ``sut.<key>`` in the analysis and ``<key>`` in the
-    model. Selection is build-time only.
+    ``selections`` is the fixture-wide map of analysis name to one selection
+    map. That map reaches both :func:`build_analysis` and :func:`build_model`
+    unchanged; the adapter resolves a key relative to the composition being
+    generated (``path`` in the model, ``sut.path`` in the analysis). Selection
+    is build-time only.
     """
     model = Path(model_dir)
     name = model_name or model.name
@@ -126,7 +123,7 @@ def _build_one(
     architecture_dir = model / "architecture"
     analysis_dir = fixture.analysis_dir(artifacts, name, analysis)
     model_build_dir = fixture.model_dir(artifacts, name, analysis, build_name)
-    scoped = (selections or {}).get(analysis, {})
+    scoped = (selections or {}).get(analysis)
 
     build_analysis(
         architecture_dir,
@@ -134,7 +131,7 @@ def _build_one(
         analysis,
         name,
         pyssp=pyssp,
-        selections=scoped.get("analysis"),
+        selections=scoped,
     )
     build_model(
         architecture_dir,
@@ -143,7 +140,7 @@ def _build_one(
         fmu_root=repo_root,
         validate_fmus=validate_fmus,
         pyssp=pyssp,
-        selections=scoped.get("model"),
+        selections=scoped,
     )
 
     descriptor = read_analysis_descriptor(analysis_dir / "analysis.json")
@@ -167,7 +164,7 @@ def build_fixture(
     artifacts_root: Path | str | None = None,
     validate_fmus: bool = True,
     pyssp: str | Path | None = None,
-    selections: Mapping[str, Mapping[str, Mapping[str, str]]] | None = None,
+    selections: Mapping[str, Mapping[str, str]] | None = None,
 ) -> dict[str, fixture.BuiltFixture]:
     """Build one analysis and exported model SSP per analysis, keyed by analysis name.
 
@@ -177,31 +174,20 @@ def build_fixture(
     ``<artifacts_root>/models/<model>/<analysis>/<build_name>``. ``model_dir`` is
     the fixture directory and is read-only. Packaging is the caller's step.
 
-    ``selections`` maps an analysis name to ``{"analysis": {...}, "model": {...}}``:
-    the ``analysis`` entry reaches that analysis's :func:`build_analysis` and the
-    ``model`` entry its :func:`build_model`. Two scopes exist because a
-    selection key is resolved relative to the composition being generated — the
-    analysis composes the model through ``part sut : System``, so a structural
-    point is ``sut.<key>`` in the analysis and ``<key>`` in the model. The maps are
-    not interchangeable. ``analyses`` remains the source of truth for which
-    analyses exist; an unknown analysis name or a scope key other than ``analysis`` or
-    ``model`` raises ``ValueError``. A missing scope means that build runs
-    unselected. Selection is build-time only.
+    ``selections`` maps an analysis name to that analysis's selection map
+    (``{"source": "stepImplementation"}``). The same map reaches both
+    :func:`build_analysis` and :func:`build_model`; the adapter resolves a key
+    relative to the composition being generated, so the caller does not build a
+    second scope. ``analyses`` remains the source of truth for which analyses
+    exist; an unknown analysis name raises ``ValueError``. A missing map means
+    that build runs on the analysis's authored selection. Selection is
+    build-time only.
     """
     unknown = sorted(set(selections or ()) - set(analyses))
     if unknown:
         raise ValueError(
             "selections name analyses that are not built: " + ", ".join(unknown)
         )
-    for analysis, scoped in (selections or {}).items():
-        unknown_scopes = sorted(set(scoped) - set(_SELECTION_SCOPES))
-        if unknown_scopes:
-            raise ValueError(
-                f"selections for analysis '{analysis}' name unknown scopes: "
-                + ", ".join(unknown_scopes)
-                + "; allowed scopes: "
-                + ", ".join(_SELECTION_SCOPES)
-            )
     return {
         analysis: _build_one(
             model_dir=model_dir,

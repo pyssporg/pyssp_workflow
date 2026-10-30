@@ -387,8 +387,7 @@ def test_build_fixture_passes_each_analysis_only_its_own_selection(
         monkeypatch, [], selections_seen=selections_seen
     )
     model_dir = _fixture_dir(tmp_path)
-    analysis_selection = {"sut.path.stage": "attenuateStage"}
-    model_selection = {"path.stage": "attenuateStage"}
+    selection = {"path.stage": "attenuateStage"}
 
     build_fixture(
         model_dir=model_dir,
@@ -396,20 +395,18 @@ def test_build_fixture_passes_each_analysis_only_its_own_selection(
         model_name="demo",
         composition="System",
         analyses=("a", "b"),
-        selections={
-            "b": {"analysis": analysis_selection, "model": model_selection},
-        },
+        selections={"b": selection},
     )
 
     assert selections_seen == [
         ("analysis", None),
         ("model", None),
-        ("analysis", analysis_selection),
-        ("model", model_selection),
+        ("analysis", selection),
+        ("model", selection),
     ]
 
 
-def test_build_fixture_accepts_one_scope_and_rejects_an_unknown_scope(
+def test_build_fixture_passes_one_selection_map_to_both_derivations(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     selections_seen: list[tuple[str, dict[str, str] | None]] = []
@@ -417,6 +414,7 @@ def test_build_fixture_accepts_one_scope_and_rejects_an_unknown_scope(
         monkeypatch, [], selections_seen=selections_seen
     )
     model_dir = _fixture_dir(tmp_path)
+    selection = {"path": "direct", "scenario": "baseline"}
 
     build_fixture(
         model_dir=model_dir,
@@ -424,22 +422,12 @@ def test_build_fixture_accepts_one_scope_and_rejects_an_unknown_scope(
         model_name="demo",
         composition="System",
         analyses=("a",),
-        selections={"a": {"analysis": {"sut.path": "direct"}}},
+        selections={"a": selection},
     )
     assert selections_seen == [
-        ("analysis", {"sut.path": "direct"}),
-        ("model", None),
+        ("analysis", selection),
+        ("model", selection),
     ]
-
-    with pytest.raises(ValueError, match="allowed scopes: analysis, model"):
-        build_fixture(
-            model_dir=model_dir,
-            repo_root=tmp_path,
-            model_name="demo",
-            composition="System",
-            analyses=("a",),
-            selections={"a": {"bogus": {"path": "direct"}}},
-        )
 
 
 def test_build_fixture_rejects_a_selection_for_an_unknown_analysis(
@@ -455,7 +443,7 @@ def test_build_fixture_rejects_a_selection_for_an_unknown_analysis(
             model_name="demo",
             composition="System",
             analyses=("a",),
-            selections={"unknown": {"analysis": {"variant": "two"}}},
+            selections={"unknown": {"variant": "two"}},
         )
 
 
