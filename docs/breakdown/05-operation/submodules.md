@@ -14,13 +14,16 @@ gitlink in the parent commit pins the revision the package was tested with.
 
 | Path | Upstream | Used by |
 | --- | --- | --- |
-| `3rd_party/pyssp_standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
+| `3rd_party/experimental_pyssp_standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
 | `3rd_party/pyssp_simulate` | `pyssporg/pyssp_simulate` | `compare` |
 | `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
 | `3rd_party/pyssp_vv` | `pyssporg/pyssp_vv` | `compare` (measure, evidence), `nodes` (judge, evidence) |
 | `3rd_party/sequence_extensions` | `jkCXf9X4/sequence_extensions` | `nodes` |
 
-`pyssp_standard` is pinned to a revision on its `alpha` branch,
+The checkout is the experimental `pyssp_standard` fork
+(`pyssporg/experimental_pyssp_standard`, directory
+`3rd_party/experimental_pyssp_standard`); the import package stays
+`pyssp_standard`. It is pinned to a revision on its `alpha` branch,
 not `main`, so its `.gitmodules` entry has no `branch` and the checkout stays
 detached. Do not add `-b main` for it.
 

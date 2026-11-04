@@ -7,8 +7,8 @@
 #
 # See docs/breakdown/05-operation/submodules.md.
 
-[submodule "3rd_party/pyssp_standard"]
-	path = 3rd_party/pyssp_standard
+[submodule "3rd_party/experimental_pyssp_standard"]
+	path = 3rd_party/experimental_pyssp_standard
 	url = https://github.com/pyssporg/experimental_pyssp_standard.git
 
 [submodule "3rd_party/pyssp_simulate"]

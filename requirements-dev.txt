@@ -8,6 +8,6 @@
 # The flow engine and the SysML tool have their own files because they add
 # platform or Python-version constraints: requirements-flow.txt and
 # requirements-sysml.txt.
--e 3rd_party/pyssp_standard
+-e 3rd_party/experimental_pyssp_standard
 -e 3rd_party/pyssp_simulate
 -e 3rd_party/pyssp_vv[measure]
