@@ -21,18 +21,35 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
 ]
-# Measurement, judgment, and evidence come from pyssp_vv. Capabilities are
-# linked under 3rd_party/ and installed from requirements-dev.txt during
-# development, so `pip install -e .` stays offline. These names are reserved
-# for the first PyPI release; see AD-003.
-dependencies = []
+# This package composes capabilities; it does not implement them. The three
+# distributions below are imported unconditionally (binding, compare, authoring),
+# so they are hard dependencies of the wheel.
+#
+# Siblings are pinned to immutable release assets attached by that package's
+# `wheels.yml` workflow: the tag is `v<version>` and the asset is named
+# `<dist>-<version>-py3-none-any.whl`. A version whose tag has not been released
+# yet makes the wheel uninstallable, so release siblings before this package.
+dependencies = [
+  "experimental-pyssp-standard @ https://github.com/pyssporg/experimental_pyssp_standard/releases/download/v0.9.2.dev0/experimental_pyssp_standard-0.9.2.dev0-py3-none-any.whl",
+  "pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/v0.2.0/pyssp_simulate-0.2.0-py3-none-any.whl",
+  "pyssp-vv[measure] @ https://github.com/pyssporg/pyssp_vv/releases/download/v0.1.0/pyssp_vv-0.1.0-py3-none-any.whl",
+]
 
 [project.optional-dependencies]
-flow = ["sequence-extensions-flow>=3"]
-build = []
-simulate = []
-all = ["sequence-extensions-flow>=3"]
+# Node layer: imported by pyssp_workflow.nodes only (Python 3.11+).
+flow = ["sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl"]
+# Build CLI: `pyssp` is invoked as a subprocess, never imported.
+build = ["pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.3.0/pyssp_sysml2-0.3.0-py3-none-any.whl"]
+all = [
+  "sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl",
+  "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.3.0/pyssp_sysml2-0.3.0-py3-none-any.whl",
+]
+# Base dependencies cover the siblings the test suite imports; dev adds the runner.
 dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.hatch.metadata]
+# Sibling dependencies are PEP 508 direct references to release assets.
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyssp_workflow"]
