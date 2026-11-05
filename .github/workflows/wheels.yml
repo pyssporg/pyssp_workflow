@@ -21,10 +21,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Build wheel
+      - name: Build wheel and sdist
         run: |
-          python -m pip install --upgrade pip
-          python -m pip wheel --no-deps --wheel-dir dist .
+          python -m pip install --upgrade pip build
+          python -m build --sdist --wheel
 
       - name: Check wheel metadata
         run: |
@@ -34,30 +34,47 @@ jobs:
           with zipfile.ZipFile(wheel) as archive:
               (metadata,) = [n for n in archive.namelist() if n.endswith(".dist-info/METADATA")]
               text = archive.read(metadata).decode()
+          # Siblings are PEP 508 direct references to their release assets, so a
+          # tag that was never released fails the install rather than resolving
+          # an older build.
           required = (
-              "Requires-Dist: experimental-pyssp-standard>=0.9.2.dev0",
-              "Requires-Dist: pyssp-simulate>=0.2",
-              "Requires-Dist: pyssp-vv[measure]>=0.1",
+              "Requires-Dist: experimental-pyssp-standard @ https://github.com/pyssporg/experimental_pyssp_standard/releases/download/",
+              "Requires-Dist: pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/",
+              "Requires-Dist: pyssp-vv[measure] @ https://github.com/pyssporg/pyssp_vv/releases/download/",
+              "Requires-Dist: pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/",
           )
           missing = [line for line in required if line not in text]
           assert not missing, f"{wheel}: missing {missing}"
           print(wheel, "declares its capability dependencies")
           PY
 
+      - name: Check sdist excludes the capability checkouts
+        run: |
+          python - <<'PY'
+          import glob, tarfile
+          (sdist,) = glob.glob("dist/*.tar.gz")
+          with tarfile.open(sdist) as archive:
+              names = archive.getnames()
+          vendored = [n for n in names if "/3rd_party/" in n]
+          assert not vendored, f"{sdist}: vendors {len(vendored)} 3rd_party entries"
+          assert any(n.endswith("/pyproject.toml") for n in names), f"{sdist}: missing pyproject.toml"
+          print(sdist, "ships sources only")
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
-          name: pyssp-workflow-wheel
-          path: dist/*.whl
+          name: pyssp-workflow-dist
+          path: dist/*
           if-no-files-found: error
 
-      - name: Attach wheel to release
+      - name: Attach wheel and sdist to release
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF_NAME}"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/*.whl --clobber
+            gh release upload "$tag" dist/* --clobber
           else
-            gh release create "$tag" dist/*.whl --title "$tag" --notes "Wheel artifact for $tag"
+            gh release create "$tag" dist/* --title "$tag" --notes "Wheel and sdist artifacts for $tag"
           fi
