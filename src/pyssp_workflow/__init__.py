@@ -11,4 +11,4 @@ top-level import dependency-free so the optional capability extras stay
 optional.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

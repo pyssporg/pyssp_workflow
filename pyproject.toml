@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyssp-workflow"
-version = "0.1.0"
+version = "0.1.1"
 description = "Composable build, run, compare, and verify workflows for SSP models."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,10 +39,10 @@ dependencies = [
 # Node layer: imported by pyssp_workflow.nodes only (Python 3.11+).
 flow = ["sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl"]
 # Build CLI: `pyssp` is invoked as a subprocess, never imported.
-build = ["pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.3.0/pyssp_sysml2-0.3.0-py3-none-any.whl"]
+build = ["pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/pyssp_sysml2-0.4.0-py3-none-any.whl"]
 all = [
   "sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl",
-  "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.3.0/pyssp_sysml2-0.3.0-py3-none-any.whl",
+  "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/pyssp_sysml2-0.4.0-py3-none-any.whl",
 ]
 # Base dependencies cover the siblings the test suite imports; dev adds the runner.
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -53,6 +53,11 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyssp_workflow"]
+
+[tool.hatch.build.targets.sdist]
+# The capability checkouts are sibling repositories, not sources of this
+# distribution; without this the sdist vendors them.
+exclude = ["/3rd_party", "/dist"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]
