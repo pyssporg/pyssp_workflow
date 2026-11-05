@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyssp-workflow"
-version = "0.1.1"
+version = "0.2.0"
 description = "Composable build, run, compare, and verify workflows for SSP models."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,9 +40,21 @@ dependencies = [
 flow = ["sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl"]
 # Build CLI: `pyssp` is invoked as a subprocess, never imported.
 build = ["pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/pyssp_sysml2-0.4.0-py3-none-any.whl"]
+# SysML install bundle: the dialect and FMI artifact releases a SysML consumer
+# needs together. This package imports none of them; `authoring` only shells out
+# to the `pyssp` CLI, so the extra pins the bundle without exposing it.
+#
+# pycps-sysml2 is deliberately absent: pyssp_sysml2 and pyfmi_sysml2 both
+# declare it as a dependency, so it arrives transitively and has exactly one
+# owner per pin.
+sysml = [
+  "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/pyssp_sysml2-0.4.0-py3-none-any.whl",
+  "pyfmi-sysml2 @ https://github.com/pyssporg/pyfmi_sysml2/releases/download/v0.1.0/pyfmi_sysml2-0.1.0-py3-none-any.whl",
+]
 all = [
   "sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl",
   "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.4.0/pyssp_sysml2-0.4.0-py3-none-any.whl",
+  "pyfmi-sysml2 @ https://github.com/pyssporg/pyfmi_sysml2/releases/download/v0.1.0/pyfmi_sysml2-0.1.0-py3-none-any.whl",
 ]
 # Base dependencies cover the siblings the test suite imports; dev adds the runner.
 dev = ["pytest>=8", "ruff>=0.6"]

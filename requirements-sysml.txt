@@ -5,3 +5,6 @@
 #   pip install -r requirements-sysml.txt
 -e 3rd_party/experimental_pyssp_standard
 -e 3rd_party/pyssp_sysml2
+# The rest of the `sysml` extra: the dialect and FMI artifact libraries.
+-e 3rd_party/pycps_sysml2
+-e 3rd_party/pyfmi_sysml2

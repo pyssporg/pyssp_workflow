@@ -11,6 +11,16 @@
 	path = 3rd_party/experimental_pyssp_standard
 	url = https://github.com/pyssporg/experimental_pyssp_standard.git
 
+[submodule "3rd_party/pycps_sysml2"]
+	path = 3rd_party/pycps_sysml2
+	url = https://github.com/pyssporg/pycps_sysml2.git
+	branch = main
+
+[submodule "3rd_party/pyfmi_sysml2"]
+	path = 3rd_party/pyfmi_sysml2
+	url = https://github.com/pyssporg/pyfmi_sysml2.git
+	branch = main
+
 [submodule "3rd_party/pyssp_simulate"]
 	path = 3rd_party/pyssp_simulate
 	url = https://github.com/pyssporg/pyssp_simulate.git
