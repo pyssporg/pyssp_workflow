@@ -6,6 +6,7 @@ Generated from each record's `state:` field: current-state leaf ->
 decisions -> artifacts. Current state is the leaf; the records are its
 history.
 
+- **Distribution** — Decisions: AD-006 · Artifacts: `pyproject.toml`, `requirements-sysml.txt`, `.gitmodules` · State: `01-product/distribution.md`
 - **Module surface** — Decisions: AD-005 · Artifacts: `src/pyssp_workflow/binding.py` · State: `01-product/module-surface.md`
 - **Architecture** — Decisions: AD-002, AD-004, IMD-001 · Artifacts: `src/pyssp_workflow/fixture.py`, `src/pyssp_workflow/study`, `src/pyssp_workflow/binding.py`, `src/pyssp_workflow/compare.py` · State: `02-architecture/architecture.md`
 - **Node Catalog** — Decisions: AD-001 · Artifacts: `src/pyssp_workflow/nodes/__init__.py` · State: `02-architecture/node-catalog.md`

@@ -15,6 +15,8 @@ gitlink in the parent commit pins the revision the package was tested with.
 | Path | Upstream | Used by |
 | --- | --- | --- |
 | `3rd_party/experimental_pyssp_standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
+| `3rd_party/pycps_sysml2` | `pyssporg/pycps_sysml2` | install bundle, not imported |
+| `3rd_party/pyfmi_sysml2` | `pyssporg/pyfmi_sysml2` | install bundle, not imported |
 | `3rd_party/pyssp_simulate` | `pyssporg/pyssp_simulate` | `compare` |
 | `3rd_party/pyssp_sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
 | `3rd_party/pyssp_vv` | `pyssporg/pyssp_vv` | `compare` (measure, evidence), `nodes` (judge, evidence) |
@@ -40,7 +42,9 @@ pip install -e ".[dev]"
 The flow engine and the SysML tool have their own files:
 
 - `requirements-flow.txt` adds `sequence_extensions` (Python 3.11+).
-- `requirements-sysml.txt` installs `pyssp_sysml2` into a CLI-only environment.
+- `requirements-sysml.txt` installs the SysML tool plus the two bundle libraries (`pycps_sysml2`, `pyfmi_sysml2`), CLI only.
+
+The `sysml` extra pins the same three from release wheels; the gitlinks here pin the matching revisions for development. This package never imports any of them (`AD-006`).
 
 ## Updating one
 

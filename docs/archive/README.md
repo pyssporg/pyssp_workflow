@@ -21,6 +21,8 @@ Records live in the cold-storage archive; extract one with `pb archive read <ID>
   One module per responsibility; study, binding, compare, and fixture name the records they own.
 - **AD-005** — One bind Call Instead of a Binding Record Union · accepted · 2026-10-27 · `AD-005`
   Binding is one bind call with mode, mapping, and components axes; the Binding union is gone.
+- **AD-006** — SysML Install Bundle — Pin Without Import · accepted · 2026-11-05 · `AD-006`
+  pyssp_workflow carries the SysML/FMI siblings as an install-only extra and never imports them.
 
 ### Implementation
 

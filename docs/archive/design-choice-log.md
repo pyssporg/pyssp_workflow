@@ -7,6 +7,7 @@ stream.
 
 | Date | ID | Decision | Layers | Status | Record |
 |---|---|---|---|---|---|
+| 2026-11-05 | AD-006 | SysML Install Bundle — Pin Without Import | architecture, product, operation | accepted | `AD-006` |
 | 2026-10-27 | AD-005 | One bind Call Instead of a Binding Record Union | architecture, product | accepted | `AD-005` |
 | 2026-10-23 | AD-004 | Module Surfaces Follow Responsibilities | architecture | accepted | `AD-004` |
 | 2026-10-22 | IMD-001 | Figures Are Derived Artifacts | implementation, architecture | accepted | `IMD-001` |
