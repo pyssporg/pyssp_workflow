@@ -1,4 +1,4 @@
-"""Node wrappers for flow engines (optional ``flow`` extra).
+"""Node wrappers for flow engines (``sequence-extensions-flow``).
 
 Domain work lives elsewhere: measurement and judgment in ``pyssp_vv``,
 simulation in ``pyssp_simulate``. Nodes only add scheduling policy. Importing
@@ -11,8 +11,8 @@ import importlib.machinery
 import importlib.util
 
 _FLOW_HINT = (
-    "pyssp_workflow.nodes requires the 'flow' extra: "
-    "pip install 'pyssp-workflow[flow]'"
+    "pyssp_workflow.nodes requires sequence-extensions-flow: "
+    "pip install sequence-extensions-flow"
 )
 
 

@@ -82,5 +82,6 @@ package two audiences and two release cadences.
 None at present. The module surfaces were settled in `AD-004`.
 
 The dependency layout is settled: capabilities are linked under `3rd_party/` and
-installed from `requirements-dev.txt`. See `AD-003`. The `sysml` extra is an
-install bundle this package never imports (`AD-006`).
+installed from `requirements-dev.txt`, and every sibling is a base dependency of
+the released wheel. See `AD-003`. The SysML siblings are install-only and never
+imported (`AD-006`).

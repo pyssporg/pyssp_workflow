@@ -84,21 +84,21 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 pip install -e ".[dev]"
 pip install -r requirements-flow.txt   # node layer, Python 3.11+
-pip install -r requirements-sysml.txt  # SysML tool plus the bundle libraries
+pip install -r requirements-sysml.txt  # SysML tool plus the SysML libraries
 ```
 
-Installed from a release, the extras are:
+The released wheel installs the whole runtime set as base dependencies:
 
 ```bash
-pip install "pyssp-workflow[flow]"    # node layer, Python 3.11+
-pip install "pyssp-workflow[sysml]"   # sysml install bundle
-pip install -e ".[sysml,dev]"         # same bundle, editable checkout
+pip install "pyssp-workflow @ <release-wheel-url>"   # full runtime set
+pip install -e ".[dev]"                              # editable checkout plus test tools
 ```
 
-The `sysml` extra is an install bundle only: it pins `pyssp-sysml2` and
-`pyfmi-sysml2` (`pycps-sysml2` arrives transitively) so a SysML consumer gets
-the whole set at matching versions. This package never imports any of the
-three; `authoring` only shells out to the `pyssp` CLI.
+The base dependencies are `experimental-pyssp-standard`, `pyssp-simulate`,
+`pyssp-vv`, `sequence-extensions-flow`, `pyssp-sysml2`, and `pyfmi-sysml2`.
+The two SysML packages are install-only: this package never imports them;
+`authoring` only shells out to the `pyssp` CLI. `pycps-sysml2` arrives
+transitively with them.
 
 ## Status
 

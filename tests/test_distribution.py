@@ -1,4 +1,4 @@
-"""The ``sysml`` extra pins the bundle without adding a surface."""
+"""The shipped metadata exposes only ``dev`` and pins the bundle in base."""
 
 from __future__ import annotations
 
@@ -12,30 +12,45 @@ pytestmark = pytest.mark.level_static
 PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 
-def _extras() -> dict[str, list[str]]:
-    """Return ``extra -> [requirement, ...]`` from ``pyproject.toml``."""
+def _section(name: str) -> str:
     text = PYPROJECT.read_text(encoding="utf-8")
-    section = text.split("[project.optional-dependencies]", 1)[1]
-    section = section.split("\n[", 1)[0]
-    extras: dict[str, list[str]] = {}
+    section = text.split(f"[{name}]", 1)[1]
+    return section.split("\n[", 1)[0]
+
+
+def _groups(name: str) -> dict[str, list[str]]:
+    """Return ``group -> [requirement, ...]`` for a dependency table."""
+    groups: dict[str, list[str]] = {}
     current: str | None = None
-    for raw in section.splitlines():
+    for raw in _section(name).splitlines():
         line = raw.split("#", 1)[0].strip()
         if not line:
             continue
         if "=" in line:
             key, _, value = line.partition("=")
             current = key.strip()
-            extras[current] = re.findall(r'"([^"]*)"', value)
+            groups[current] = re.findall(r'"([^"]*)"', value)
         elif current is not None:
-            extras[current].extend(re.findall(r'"([^"]*)"', line))
-    return extras
+            groups[current].extend(re.findall(r'"([^"]*)"', line))
+    return groups
 
 
-def test_sysml_extra_pins_the_bundle_without_repeating_pycps() -> None:
+def _names(requirements: list[str]) -> set[str]:
+    return {requirement.split(" @ ", 1)[0] for requirement in requirements}
+
+
+def test_only_the_dev_extra_is_shipped() -> None:
+    extras = _groups("project.optional-dependencies")
+
+    assert set(extras) == {"dev"}
+    assert extras["dev"] == ["pytest>=8", "ruff>=0.6"]
+
+
+def test_sysml_bundle_is_pinned_once_in_base_dependencies() -> None:
     # pycps-sysml2 arrives transitively from both siblings. Listing it here
     # would give the same pin two owners and let the three drift apart.
-    names = {
-        requirement.split(" @ ", 1)[0] for requirement in _extras()["sysml"]
-    }
-    assert names == {"pyssp-sysml2", "pyfmi-sysml2"}
+    requirements = _groups("project")["dependencies"]
+
+    assert {"pyssp-sysml2", "pyfmi-sysml2"} <= _names(requirements)
+    assert "pycps-sysml2" not in _names(requirements)
+    assert len(requirements) == len(set(requirements))

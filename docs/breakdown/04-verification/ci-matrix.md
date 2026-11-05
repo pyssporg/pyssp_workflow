@@ -37,7 +37,7 @@ status: current
 - `ruff>=0.6` is in the `dev` extra.
 - No lint step runs in CI.
 - No matrix entry excludes the node layer; `test_nodes_import.py` covers the
-  missing flow extra.
+  optional node layer's import failure.
 
 ## Owns
 

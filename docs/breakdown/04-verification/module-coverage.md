@@ -24,8 +24,9 @@ matching file.
 - `test_fixture.py`: 5 tests. Artifact root default and override, analysis and
   model directories, their distinctness.
 - `test_layering.py`: 7 tests. Import graph and capability markers (`TEST-001`).
-- `test_nodes_import.py`: 2 tests. The flow extra is required; `write_bundle`
-  is exported.
+- `test_nodes_import.py`: 3 tests. The optional node layer requires the flow
+  subpackage and fails with a hint; `write_bundle` and `derive_analysis` are
+  exported.
 - `test_analysis.py`: 7 tests. Descriptor reading, standard artifact decoding,
   scenario targets and rejected mappings.
 

@@ -9,7 +9,7 @@ Routine build, install, and gitlink maintenance.
 
 ## Excludes
 
-- Package identity and extras: `CP-003`.
+- Package identity and dependencies: `CP-003`.
 - CI job shape: `TEST-004`.
 
 ## Contents

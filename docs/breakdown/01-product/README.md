@@ -20,6 +20,6 @@ installable package.
 <!-- GENERATED FILE — do not edit. Regenerate with pb-registers. -->
 - **CP-001** [Capabilities](capabilities.md) — Workflow capabilities: authoring, binding, simulate, compare, and node scheduling over standard artifacts.
 - **CP-002** [Capability ownership](capability-ownership.md) — The package composes capabilities and owns none: composition, paths, and order of work are its whole scope.
-- **CP-003** [Distribution](distribution.md) — Package identity, dependency-free install, reserved extras, and the development install from 3rd_party gitlinks.
+- **CP-003** [Distribution](distribution.md) — Package identity, base dependencies, the dev extra, and the development install from 3rd_party gitlinks.
 - **INFO-005** [Module surface](module-surface.md) — Public module surfaces, the bind signature and its four placements, and the plain records they return.
 <!-- pb:index:end -->

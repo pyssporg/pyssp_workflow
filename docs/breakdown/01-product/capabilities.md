@@ -51,4 +51,4 @@ authoring ──> binding ──> simulate ──> compare
 
 - Measurement, judgment, and evidence: `CP-002`, owned by `pyssp_vv`.
 - Module-level surfaces and signatures: `INFO-005`.
-- Package installation and extras: `CP-003`.
+- Package installation and dependencies: `CP-003`.

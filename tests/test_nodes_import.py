@@ -10,7 +10,10 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 SRC = PROJECT / "src"
-HINT = "pyssp-workflow[flow]"
+HINT = (
+    "pyssp_workflow.nodes requires sequence-extensions-flow: "
+    "pip install sequence-extensions-flow"
+)
 
 
 def _shadow(tmp_path: Path, *, flow: str | None) -> Path:

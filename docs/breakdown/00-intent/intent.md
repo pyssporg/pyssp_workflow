@@ -45,8 +45,8 @@ It does **not** contain the core of any of those capabilities.
 - **Retries only on deterministic, atomic nodes.**
 - **The authoring path is independent of the judging path.** `authoring` cannot
   import `pyssp_vv`.
-- **Nodes are optional.** The package installs without a flow engine; the
-  `flow` extra adds it.
+- **Nodes are optional.** `sequence-extensions-flow` is a base dependency, but
+  only `nodes` imports it; no other module needs a flow engine.
 - **Public modules are explicit.** `authoring`, `binding`, `compare`, `analysis`,
   `fixture`, and the optional `nodes` layer are the public module surfaces. The
   package top-level import stays dependency-free so optional capabilities remain

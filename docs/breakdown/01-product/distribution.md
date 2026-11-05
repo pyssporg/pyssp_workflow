@@ -2,7 +2,7 @@
 id: CP-003
 type: capability
 title: Distribution
-summary: "Package identity, dependency-free install, reserved extras, and the development install from 3rd_party gitlinks."
+summary: "Package identity, base dependencies, the dev extra, and the development install from 3rd_party gitlinks."
 date: 2026-10-27
 status: current
 ---
@@ -40,12 +40,13 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
 
 ## Dependencies
 
-- `dependencies`: the three capability siblings the wheel imports
-  unconditionally, as PEP 508 direct references to their release assets:
-  `experimental-pyssp-standard` `v0.9.2.dev0`, `pyssp-simulate` `v0.2.0`,
-  `pyssp-vv[measure]` `v0.1.0`.
-- `pyssp-sysml2` is a CLI dependency, never an import: it is pinned to
-  `v0.4.0` in the `build`, `sysml`, and `all` extras.
+- `dependencies`: the whole runtime set, as PEP 508 direct references to
+  sibling release assets: `experimental-pyssp-standard` `v0.9.2.dev0`,
+  `pyssp-simulate` `v0.2.0`, `pyssp-vv` `v0.1.0`,
+  `sequence-extensions-flow` `v3.0.0`, `pyssp-sysml2` `v0.4.0`, and
+  `pyfmi-sysml2` `v0.1.0`.
+- `pyssp-sysml2` and `pyfmi-sysml2` are install-only, never imports;
+  `pycps-sysml2` `v0.1.0` arrives transitively with one owner per pin.
 - Sibling tags must exist before this package is released; an unreleased tag
   makes the wheel uninstallable (see the `pyproject.toml` dependency comment).
 - During development the same capabilities are linked under `3rd_party/` and
@@ -54,15 +55,9 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
 
 ## Extras
 
-- `flow`: `sequence-extensions-flow` `v3.0.0` (direct reference).
-- `build`: `pyssp-sysml2` `v0.4.0` (direct reference), CLI only.
-- `sysml`: install bundle, two direct references: `pyssp-sysml2` `v0.4.0`
-  and `pyfmi-sysml2` `v0.1.0`. `pycps-sysml2` is deliberately absent because
-  both siblings declare it, so `v0.1.0` arrives transitively with one owner
-  per pin. This package never imports any of the three; the extra exists so a
-  SysML consumer installs the matching set (`AD-006`).
-- `all`: `flow` plus `sysml`.
-- `dev`: `pytest>=8`, `ruff>=0.6`.
+Only `dev`: `pytest>=8`, `ruff>=0.6`. Every capability is a base dependency,
+so no capability extra exists. The SysML siblings stay install-only: this
+package never imports them (`AD-006`).
 
 ## Release assets
 
@@ -80,7 +75,7 @@ checkouts, which belong to their own repositories.
 
 ## Owns
 
-- What a consumer can install and which extras exist today.
+- What a consumer can install and which base dependencies and extras exist today.
 
 ## Excludes
 
