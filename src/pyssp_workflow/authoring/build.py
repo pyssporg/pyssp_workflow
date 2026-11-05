@@ -28,13 +28,18 @@ def build_analysis(
     pyssp: str | Path | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> Path:
     """Reset ``analysis_dir`` and generate its SSV, SSM, and ``analysis.json``.
 
     ``architecture_dir`` is read-only. Returns ``analysis_dir``. ``selections``
     resolves SysML variation points in ``composition`` at build time only; the
     counterpart selection must reach :func:`build_model` so the SSV/SSM and the
-    SSD agree.
+    SSD agree. ``core_definitions`` reaches the ``pyssp`` CLI; it defaults to on
+    because this ecosystem's architectures rely on ``pycps_sysml2``'s packaged
+    core definitions. ``includes`` reaches the CLI as repeated
+    ``--architecture`` roots after the model root.
     """
     architecture = Path(architecture_dir)
     analysis = Path(analysis_dir)
@@ -47,6 +52,8 @@ def build_analysis(
         pyssp=pyssp,
         timeout=timeout,
         selections=selections,
+        core_definitions=core_definitions,
+        includes=includes,
     )
     return analysis
 
@@ -62,6 +69,8 @@ def build_model(
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
     configuration: str | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> Path:
     """Export the model SSP into ``model_dir`` and unpack its FMUs.
 
@@ -71,6 +80,10 @@ def build_model(
     points in ``composition`` at build time only; the counterpart selection must
     reach :func:`build_analysis` so the SSD and the SSV/SSM agree. The archive
     provenance names ``configuration`` when one authored the selection.
+    ``core_definitions`` reaches the ``pyssp`` CLI; it defaults to on because
+    this ecosystem's architectures rely on ``pycps_sysml2``'s packaged core
+    definitions. ``includes`` reaches the CLI as repeated ``--architecture``
+    roots after the model root.
     """
     architecture = Path(architecture_dir)
     model = Path(model_dir)
@@ -88,6 +101,8 @@ def build_model(
             timeout=timeout,
             selections=selections,
             configuration=configuration,
+            core_definitions=core_definitions,
+            includes=includes,
         )
         unpack_archive(
             archive,
@@ -112,6 +127,8 @@ def _build_one(
     pyssp: str | Path | None = None,
     selections: Mapping[str, Mapping[str, str]] | None = None,
     configurations: Mapping[str, str | None] | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> fixture.BuiltFixture:
     """Build one analysis and its exported model SSP; packaging is not applied.
 
@@ -121,7 +138,8 @@ def _build_one(
     generated (``path`` in the model, ``sut.path`` in the analysis). Selection
     is build-time only. ``configurations`` maps an analysis name to the SysML
     configuration that produced its selection; it reaches only the model build's
-    provenance.
+    provenance. ``includes`` reaches both derivations as repeated
+    ``--architecture`` roots.
     """
     model = Path(model_dir)
     name = model_name or model.name
@@ -139,6 +157,8 @@ def _build_one(
         name,
         pyssp=pyssp,
         selections=scoped,
+        core_definitions=core_definitions,
+        includes=includes,
     )
     build_model(
         architecture_dir,
@@ -149,6 +169,8 @@ def _build_one(
         pyssp=pyssp,
         selections=scoped,
         configuration=configuration,
+        core_definitions=core_definitions,
+        includes=includes,
     )
 
     descriptor = read_analysis_descriptor(analysis_dir / "analysis.json")
@@ -174,6 +196,8 @@ def build_fixture(
     pyssp: str | Path | None = None,
     selections: Mapping[str, Mapping[str, str]] | None = None,
     configurations: Mapping[str, str | None] | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> dict[str, fixture.BuiltFixture]:
     """Build one analysis and exported model SSP per analysis, keyed by analysis name.
 
@@ -193,7 +217,10 @@ def build_fixture(
     ``analyses`` remains the source of truth for which analyses exist; an
     unknown analysis name raises ``ValueError`` in either map. A missing map
     means that build runs on the analysis's authored selection. Selection is
-    build-time only.
+    build-time only. ``core_definitions`` reaches both derivations; it defaults
+    to on because this ecosystem's architectures rely on ``pycps_sysml2``'s
+    packaged core definitions. ``includes`` reaches both derivations as
+    repeated ``--architecture`` roots after the model root.
     """
     unknown = sorted(
         (set(selections or ()) | set(configurations or ())) - set(analyses)
@@ -216,6 +243,8 @@ def build_fixture(
             pyssp=pyssp,
             selections=selections,
             configurations=configurations,
+            core_definitions=core_definitions,
+            includes=includes,
         )
         for analysis in analyses
     }

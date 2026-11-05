@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from pyssp_workflow.authoring._process import find_executable, run
 
 DEFAULT_TIMEOUT_SECONDS = 1800.0
+
+
+def _include_arguments(includes: Sequence[Path | str]) -> list[str]:
+    """One ``--architecture`` pair per included root, in the caller's order."""
+    arguments: list[str] = []
+    for include in includes:
+        arguments.extend(["--architecture", str(Path(include))])
+    return arguments
 
 
 def _selection_arguments(selections: Mapping[str, str] | None) -> list[str]:
@@ -44,12 +52,22 @@ def derive_ssd_from_sysml(
     type_check: bool = True,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> Path:
     """Generate ``SystemStructure.ssd`` from a SysML architecture.
 
     ``selections`` resolves SysML variation points at build time only; pass the
     same selection that the analysis derivation receives so the SSD agrees with
     the SSV/SSM.
+
+    ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
+    defaults to on because this ecosystem's architectures rely on
+    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    marker definitions passes ``False``.
+
+    ``includes`` passes one extra ``--architecture`` per root, after the model
+    root, so the CLI loads them as definition roots.
     """
     output = Path(output_path)
     arguments = [
@@ -57,6 +75,7 @@ def derive_ssd_from_sysml(
         "ssd",
         "--architecture",
         str(Path(architecture_path)),
+        *_include_arguments(includes),
         "--composition",
         composition,
         "--output",
@@ -66,6 +85,8 @@ def derive_ssd_from_sysml(
     ]
     if not type_check:
         arguments.append("--skip_type_check")
+    if core_definitions:
+        arguments.append("--core-definitions")
     arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
     return output
@@ -85,6 +106,8 @@ def derive_ssp_from_sysml(
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
     configuration: str | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> Path:
     """Export one ``SspModel`` composition as an SSP archive.
 
@@ -92,6 +115,14 @@ def derive_ssp_from_sysml(
     same selection that the analysis derivation receives so the SSP agrees with
     the SSV/SSM. ``configuration`` names the SysML configuration that produced
     that selection and is recorded in the archive's provenance.
+
+    ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
+    defaults to on because this ecosystem's architectures rely on
+    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    marker definitions passes ``False``.
+
+    ``includes`` passes one extra ``--architecture`` per root, after the model
+    root, so the CLI loads them as definition roots.
     """
     output = Path(output_path)
     arguments = [
@@ -99,6 +130,7 @@ def derive_ssp_from_sysml(
         "ssp",
         "--architecture",
         str(Path(architecture_path)),
+        *_include_arguments(includes),
         "--composition",
         composition,
         "--output",
@@ -114,6 +146,8 @@ def derive_ssp_from_sysml(
         arguments.append("--allow-missing-fmus")
     if not type_check:
         arguments.append("--skip_type_check")
+    if core_definitions:
+        arguments.append("--core-definitions")
     arguments.extend(_selection_arguments(selections))
     if configuration:
         arguments.extend(["--configuration", configuration])
@@ -131,6 +165,8 @@ def derive_analysis_from_sysml(
     target_ssd: str = "SystemStructure.ssd",
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     selections: Mapping[str, str] | None = None,
+    core_definitions: bool = True,
+    includes: Sequence[Path | str] = (),
 ) -> Path:
     """Generate analysis SSV, SSM, and ``analysis.json``; never an SSP.
 
@@ -139,6 +175,14 @@ def derive_analysis_from_sysml(
     ``selections`` resolves SysML variation points at build time only; pass the
     same selection that the model derivation receives so the SSV/SSM agree
     with the SSD.
+
+    ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
+    defaults to on because this ecosystem's architectures rely on
+    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    marker definitions passes ``False``.
+
+    ``includes`` passes one extra ``--architecture`` per root, after the model
+    root, so the CLI loads them as definition roots.
     """
     output = Path(output_dir)
     arguments = [
@@ -146,6 +190,7 @@ def derive_analysis_from_sysml(
         "analysis",
         "--architecture",
         str(Path(architecture_path)),
+        *_include_arguments(includes),
         "--composition",
         composition,
         "--output-dir",
@@ -155,6 +200,8 @@ def derive_analysis_from_sysml(
         "--target-ssd",
         target_ssd,
     ]
+    if core_definitions:
+        arguments.append("--core-definitions")
     arguments.extend(_selection_arguments(selections))
     _run_pyssp(pyssp, arguments, timeout)
 

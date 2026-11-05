@@ -24,7 +24,9 @@ live in `INFO-002` and the composition rule in `AD-001`.
 ### Authoring group
 
 All three run the `pyssp` CLI through `pyssp_workflow.authoring` and use
-`DEFAULT_TIMEOUT_SECONDS`.
+`DEFAULT_TIMEOUT_SECONDS`. They inherit the authoring default
+`core_definitions=True`, so their `pyssp` commands carry `--core-definitions`,
+sugar for one included definition root.
 
 - **`derive_ssd`**
   - Inputs: `architecture_path`, `output_path`, `composition`, optional

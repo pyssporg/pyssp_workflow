@@ -27,6 +27,16 @@ The package exposes six module surfaces. Each returns plain records or paths.
 - **`nodes`**: optional scheduling wrappers `derive_ssd`, `derive_ssp`,
   `derive_analysis`, `write_bundle`.
 
+`derive_ssd_from_sysml`, `derive_ssp_from_sysml`,
+`derive_analysis_from_sysml`, `build_analysis`, `build_model`, and
+`build_fixture` take `core_definitions=True`. The default appends
+`--core-definitions` to the `pyssp` arguments because this ecosystem's
+architectures rely on `pycps_sysml2`'s packaged core definitions. A caller whose
+architecture vendors its own marker definitions passes `False` to omit the flag.
+
+They also take `includes=()`, one extra `--architecture` root per element,
+after the model root; the empty default adds nothing.
+
 ## Data at the borders
 
 - `compare` reads result CSVs by path.

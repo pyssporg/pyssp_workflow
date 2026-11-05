@@ -72,6 +72,7 @@ def _stub_derivations(
     derivations_seen: list[tuple[str, str]] | None = None,
     selections_seen: list[tuple[str, dict[str, str] | None]] | None = None,
     configurations_seen: list[tuple[str, str | None]] | None = None,
+    includes_seen: list[tuple[str, tuple]] | None = None,
 ) -> None:
     def fake_analysis(
         architecture_path,
@@ -83,10 +84,14 @@ def _stub_derivations(
         target_ssd="SystemStructure.ssd",
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
         selections=None,
+        core_definitions=True,
+        includes=(),
     ):
         calls.append("analysis")
         if selections_seen is not None:
             selections_seen.append(("analysis", selections))
+        if includes_seen is not None:
+            includes_seen.append(("analysis", tuple(includes)))
         assert Path(architecture_path).is_dir()
         assert model_name == "demo"
         if derivations_seen is not None:
@@ -108,12 +113,16 @@ def _stub_derivations(
         timeout=authoring.DEFAULT_TIMEOUT_SECONDS,
         selections=None,
         configuration=None,
+        core_definitions=True,
+        includes=(),
     ):
         calls.append("model")
         if selections_seen is not None:
             selections_seen.append(("model", selections))
         if configurations_seen is not None:
             configurations_seen.append(("model", configuration))
+        if includes_seen is not None:
+            includes_seen.append(("model", tuple(includes)))
         assert Path(architecture_path).is_dir()
         assert composition == "System"
         _write_ssp_archive(Path(output_path))
@@ -329,6 +338,12 @@ def _select_pairs(argv: list[str]) -> list[str]:
     return [argv[index + 1] for index, value in enumerate(argv) if value == "--select"]
 
 
+def _architecture_values(argv: list[str]) -> list[str]:
+    return [
+        argv[index + 1] for index, value in enumerate(argv) if value == "--architecture"
+    ]
+
+
 def _record_generate_argv(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> list[list[str]]:
@@ -342,6 +357,126 @@ def _record_generate_argv(
 
     monkeypatch.setattr(authoring_derive, "_run_pyssp", fake_run)
     return arguments
+
+
+@pytest.mark.level_contract
+def test_generate_argv_requests_core_definitions_by_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+
+    authoring_derive.derive_ssd_from_sysml(architecture, tmp_path / "out.ssd", "System")
+    authoring_derive.derive_ssp_from_sysml(architecture, tmp_path / "out.ssp", "System")
+    authoring_derive.derive_analysis_from_sysml(
+        architecture, tmp_path / "analysis", "System", model_name="demo"
+    )
+
+    assert ["--core-definitions" in argv for argv in arguments] == [True, True, True]
+
+
+@pytest.mark.level_contract
+def test_generate_argv_omits_core_definitions_when_disabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+
+    authoring_derive.derive_ssd_from_sysml(
+        architecture, tmp_path / "out.ssd", "System", core_definitions=False
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "out.ssp", "System", core_definitions=False
+    )
+    authoring_derive.derive_analysis_from_sysml(
+        architecture,
+        tmp_path / "analysis",
+        "System",
+        model_name="demo",
+        core_definitions=False,
+    )
+
+    assert ["--core-definitions" in argv for argv in arguments] == [False, False, False]
+
+
+@pytest.mark.level_contract
+def test_generate_argv_repeats_architecture_for_includes_in_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+    first = tmp_path / "common"
+    second = tmp_path / "vendor"
+    for include in (first, second):
+        include.mkdir()
+    includes = (first, second)
+
+    authoring_derive.derive_ssd_from_sysml(
+        architecture, tmp_path / "out.ssd", "System", includes=includes
+    )
+    authoring_derive.derive_ssp_from_sysml(
+        architecture, tmp_path / "out.ssp", "System", includes=includes
+    )
+    authoring_derive.derive_analysis_from_sysml(
+        architecture,
+        tmp_path / "analysis",
+        "System",
+        model_name="demo",
+        includes=includes,
+    )
+
+    expected = [str(architecture), str(first), str(second)]
+    for argv in arguments:
+        assert _architecture_values(argv) == expected
+        # Includes sit between the model root and the composition argument.
+        assert argv.index("--architecture") < argv.index("--composition")
+        assert argv.index("--composition") > argv.index(str(second))
+        assert "--core-definitions" in argv
+
+
+@pytest.mark.level_contract
+def test_generate_argv_adds_no_architecture_without_includes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _record_generate_argv(tmp_path, monkeypatch)
+    architecture = tmp_path / "architecture"
+    architecture.mkdir()
+
+    authoring_derive.derive_ssd_from_sysml(architecture, tmp_path / "out.ssd", "System")
+    authoring_derive.derive_ssp_from_sysml(architecture, tmp_path / "out.ssp", "System")
+    authoring_derive.derive_analysis_from_sysml(
+        architecture, tmp_path / "analysis", "System", model_name="demo"
+    )
+
+    assert [_architecture_values(argv) for argv in arguments] == [
+        [str(architecture)],
+        [str(architecture)],
+        [str(architecture)],
+    ]
+
+
+@pytest.mark.level_contract
+def test_build_fixture_forwards_includes_to_both_derivations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    includes_seen: list[tuple[str, tuple]] = []
+    _stub_derivations(monkeypatch, [], includes_seen=includes_seen)
+    model_dir = _fixture_dir(tmp_path)
+    includes = (tmp_path / "common",)
+
+    build_fixture(
+        model_dir=model_dir,
+        repo_root=tmp_path,
+        model_name="demo",
+        composition="System",
+        analyses=("a",),
+        includes=includes,
+    )
+
+    assert includes_seen == [("analysis", includes), ("model", includes)]
 
 
 @pytest.mark.level_contract

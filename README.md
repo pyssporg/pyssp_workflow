@@ -28,7 +28,11 @@ An analysis descriptor names the scenario SSV and SSM and the experiment window.
 `authoring` turns the SysML architecture into an analysis and an exported model
 SSP; `build_fixture` returns one `BuiltFixture` per analysis, with the artifact
 paths under `artifacts/analyses/<model>/<analysis>` and
-`artifacts/models/<model>/<analysis>/<build_name>`. `binding` writes the chosen
+`artifacts/models/<model>/<analysis>/<build_name>`. Its derivations default to
+`core_definitions=True`, which adds `pycps_sysml2`'s packaged markers as one
+include (`--core-definitions`); pass `core_definitions=False` for an
+architecture that declares its own. Extra definition roots go in `includes=`,
+one more `--architecture` each after the model root. `binding` writes the chosen
 scenario binding into the built SSP, which is then run by `pyssp_simulate`.
 `compare` measures one candidate result CSV against a reference and writes
 `metrics.csv`; it produces no verdict.
