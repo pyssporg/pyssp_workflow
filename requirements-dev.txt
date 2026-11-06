@@ -3,7 +3,15 @@
 # Siblings are installed from their release assets by ``pyproject.toml``, so a
 # plain editable install brings the whole capability set:
 #
-#   python3 -m pip install -e ".[dev]"
+#   python3 -m pip install -r requirements-dev.txt
+#
+# `sequence_extensions` (the node/flow engine) declares the distribution name
+# sequence-extensions-flow to avoid the unrelated PyPI project named
+# sequence-extensions; the import package is still `sequence_extensions`. It is
+# a base dependency of pyproject.toml, so this editable install pulls it from
+# its release asset. The authoring layer shells out to the `pyssp` CLI, so a
+# separate environment is only needed if you want to pin a different
+# pyssp_standard revision than the runtime one.
 #
 # Cross-repository development no longer happens through vendored submodules;
 # check out the ecosystem together and install every tree editable instead.

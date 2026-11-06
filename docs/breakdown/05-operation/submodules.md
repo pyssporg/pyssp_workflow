@@ -38,10 +38,10 @@ pip install -e ".[dev]"
 ```
 
 The editable install brings the whole capability set from the release wheels.
-The flow engine and the SysML tool have their own files:
-
-- `requirements-flow.txt` ensures `sequence_extensions` (Python 3.11+).
-- `requirements-sysml.txt` installs the SysML tool plus the dialect and FMI artifact libraries (`pycps_sysml2`, `pyfmi_sysml2`), CLI only.
+`requirements-dev.txt` (a single `-e ".[dev]"` line) pulls the same set from
+the dependencies declared in `pyproject.toml`, including `sequence_extensions`
+(the node/flow engine, Python 3.11+) and the SysML tool plus the dialect and
+FMI artifact libraries (`pycps_sysml2`, `pyfmi_sysml2`), CLI only.
 
 For **cross-repo development** of several capability trees at once, do not add
 vendored submodules here. Check all of the repositories out side by side (for

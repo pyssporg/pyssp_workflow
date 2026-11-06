@@ -33,9 +33,8 @@ The package ships as `pyssp-workflow`, pre-alpha `0.2.0`.
 git clone git@github.com:pyssporg/pyssp_workflow.git
 cd pyssp_workflow
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt   # flow layer (Python 3.11+) and SysML tooling
 pip install -e ".[dev]"
-pip install -r requirements-flow.txt   # node layer, Python 3.11+
 ```
 
 ## Dependencies

@@ -85,10 +85,8 @@ result = bind(build, scenario_ssv, mode="inline", mapping="flatten", ssm=scenari
 git clone --recurse-submodules git@github.com:pyssporg/pyssp_workflow.git
 cd pyssp_workflow
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt   # one buffer: flow layer (Python 3.11+) and SysML tooling
 pip install -e ".[dev]"
-pip install -r requirements-flow.txt   # node layer, Python 3.11+
-pip install -r requirements-sysml.txt  # SysML tool plus the SysML libraries
 ```
 
 The released wheel installs the whole runtime set as base dependencies:
