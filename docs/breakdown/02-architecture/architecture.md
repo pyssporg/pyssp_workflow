@@ -81,7 +81,7 @@ package two audiences and two release cadences.
 
 None at present. The module surfaces were settled in `AD-004`.
 
-The dependency layout is settled: capabilities are linked under `3rd_party/` and
-installed from `requirements-dev.txt`, and every sibling is a base dependency of
-the released wheel. See `AD-003`. The SysML siblings are install-only and never
+The dependency layout is settled: every sibling capability is a base dependency
+of the released wheel, declared as PEP 508 direct references and installed from
+their release assets. See `AD-003`. The SysML siblings are install-only and never
 imported (`AD-006`).

@@ -2,7 +2,7 @@
 id: TEST-004
 type: test
 title: CI matrix
-summary: "One ubuntu-latest job runs pytest on Python 3.10, 3.11, and 3.12 with recursive submodules installed."
+summary: "One ubuntu-latest job runs pytest on Python 3.10, 3.11, and 3.12, with capabilities installed from their release assets."
 date: 2026-10-27
 status: current
 ---
@@ -25,10 +25,10 @@ status: current
 
 ## Steps
 
-- `actions/checkout@v4` with `submodules: recursive`.
+- `actions/checkout@v4` (no submodules; capabilities come from release assets).
 - `actions/setup-python@v5` with the matrix version.
-- Install: upgrade pip, install `requirements-dev.txt`, install
-  `-e ".[dev]"`.
+- Install: upgrade pip, install `-e ".[dev]"` (pulls the capability release
+  wheels as base dependencies).
 - Tests: `python -m pytest`.
 - Capability gate: the "No capability creep" step (`TEST-002`).
 

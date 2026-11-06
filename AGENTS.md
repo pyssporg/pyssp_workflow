@@ -35,7 +35,10 @@ retry. It does not implement the capabilities it composes.
 
 - Plain functions cover authoring, binding, analysis descriptors and scenarios,
   result comparison, and fixture paths; `nodes` adds scheduling policy.
-- The capabilities live in the `3rd_party/` submodules; this package calls them.
+- The capabilities are declared as release-wheel dependencies in `pyproject.toml`
+  and installed from their release assets; this package calls them. Cross-repo
+  development of a capability tree happens in the flat ecosystem checkout, not
+  via vendored submodules.
 
 ## Hard constraints
 

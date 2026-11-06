@@ -56,9 +56,9 @@ allow-direct-references = true
 packages = ["src/pyssp_workflow"]
 
 [tool.hatch.build.targets.sdist]
-# The capability checkouts are sibling repositories, not sources of this
-# distribution; without this the sdist vendors them.
-exclude = ["/3rd_party", "/dist"]
+# Capabilities are installed from release assets and are never vendored into
+# this distribution.
+exclude = ["/dist"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]

@@ -2,7 +2,7 @@
 id: CP-003
 type: capability
 title: Distribution
-summary: "Package identity, base dependencies, the dev extra, and the development install from 3rd_party gitlinks."
+summary: "Package identity, base dependencies, the dev extra, and installation of capabilities from their release assets."
 date: 2026-10-27
 status: current
 ---
@@ -30,7 +30,7 @@ The package ships as `pyssp-workflow`, pre-alpha `0.2.0`.
 ## Install
 
 ```bash
-git clone --recurse-submodules git@github.com:pyssporg/pyssp_workflow.git
+git clone git@github.com:pyssporg/pyssp_workflow.git
 cd pyssp_workflow
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
@@ -49,8 +49,9 @@ pip install -r requirements-flow.txt   # node layer, Python 3.11+
   `pycps-sysml2` `v0.1.0` arrives transitively with one owner per pin.
 - Sibling tags must exist before this package is released; an unreleased tag
   makes the wheel uninstallable (see the `pyproject.toml` dependency comment).
-- During development the same capabilities are linked under `3rd_party/` and
-  installed from `requirements-dev.txt`, so `pip install -e .` stays offline.
+- During development the same capabilities are installed from their
+  release assets via `requirements-dev.txt`, so no leading `-e`-offline clone of
+  the dependency tree is needed.
 - The names are reserved for the first PyPI release (see `AD-003`).
 
 ## Extras
@@ -62,8 +63,8 @@ package never imports them (`AD-006`).
 ## Release assets
 
 Each `v<version>` release carries `pyssp_workflow-<version>-py3-none-any.whl`
-and `pyssp_workflow-<version>.tar.gz`; the sdist excludes the `3rd_party/`
-checkouts, which belong to their own repositories.
+and `pyssp_workflow-<version>.tar.gz`; the sdist ships only this package's
+sources, with the capability wheels pulled in as release-asset dependencies.
 
 ## Status
 

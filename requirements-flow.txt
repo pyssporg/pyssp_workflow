@@ -5,6 +5,6 @@
 #
 # sequence_extensions declares the distribution name sequence-extensions-flow
 # to avoid the unrelated PyPI project named sequence-extensions; the import
-# package is still `sequence_extensions`.
+# package is still `sequence_extensions`. It is a base dependency of
+# pyproject.toml, so a plain editable install pulls it from its release asset.
 -r requirements-dev.txt
--e 3rd_party/sequence_extensions

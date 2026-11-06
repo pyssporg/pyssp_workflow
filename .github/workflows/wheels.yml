@@ -51,7 +51,7 @@ jobs:
           print(wheel, "declares its capability dependencies")
           PY
 
-      - name: Check sdist excludes the capability checkouts
+      - name: Check sdist ships package sources only
         run: |
           python - <<'PY'
           import glob, tarfile
