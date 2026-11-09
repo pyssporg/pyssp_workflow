@@ -21,7 +21,10 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip build
-          python -m pip install -e ".[dev]"
+          # Pin the OMSimulator sdist whose nightly is still published: newer
+          # sdists (post198) fetch a linux-focal URL that 404s on the current
+          # runner image. post115 is pyssp_simulate's declared minimum anyway.
+          python -m pip install "OMSimulator==3.0.0.post115" -e ".[dev]"
 
       - name: Build wheel and sdist
         run: python -m build --wheel --sdist
