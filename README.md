@@ -104,7 +104,7 @@ transitively with them.
 
 ## Status
 
-Pre-alpha (`0.2.0`). The module surfaces, dependency rules, node contract, and
+Pre-alpha (`0.3.0`). The module surfaces, dependency rules, node contract, and
 catalog are established. `authoring`, `binding`, `compare`, `analysis`, and `fixture`
 are implemented; the optional node layer wraps SysML derivation and evidence
 writing.
