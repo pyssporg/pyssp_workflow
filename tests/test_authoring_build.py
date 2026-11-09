@@ -18,6 +18,7 @@ from pyssp_workflow.authoring import (
 )
 from pyssp_workflow.authoring import build as authoring_build
 from pyssp_workflow.authoring import derive as authoring_derive
+from pyssp_workflow.authoring.fmu import _write_mos
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -769,6 +770,24 @@ def test_build_legacy_model_flattens_the_system(tmp_path: Path) -> None:
         root = ssd.system
         assert [element.name for element in root.elements] == ["step", "inner_gain"]
         assert all(isinstance(element, Component) for element in root.elements)
+
+
+def test_write_mos_emits_one_loadfile_line_per_source_file_in_order(
+    tmp_path: Path,
+) -> None:
+    common = tmp_path / "common.mo"
+    model = tmp_path / "model.mo"
+    for path in (common, model):
+        path.write_text("", encoding="utf-8")
+
+    mos = _write_mos(tmp_path, [common, model], "M", "M")
+
+    text = mos.read_text(encoding="utf-8")
+    assert f'loadFile("{common}");' in text
+    assert f'loadFile("{model}");' in text
+    assert text.index(f'loadFile("{common}");') < text.index(f'loadFile("{model}");')
+    assert 'buildModelFMU(M, version="2.0", fmuType="cs", platforms={"static"}, ' \
+        'fileNamePrefix="M");' in text
 
 
 def test_build_fmu_from_modelica_requires_omc(

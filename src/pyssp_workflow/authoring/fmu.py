@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -14,14 +15,18 @@ from pyssp_workflow.authoring.derive import DEFAULT_TIMEOUT_SECONDS
 
 
 def _write_mos(
-    work_dir: Path, source_file: Path, class_name: str, file_name_prefix: str
+    work_dir: Path,
+    source_files: Sequence[Path],
+    class_name: str,
+    file_name_prefix: str,
 ) -> Path:
+    load_lines = [f'loadFile("{source}");' for source in source_files]
     mos_path = work_dir / "build.mos"
     mos_path.write_text(
         "\n".join(
             [
                 "loadModel(Modelica);",
-                f'loadFile("{source_file}");',
+                *load_lines,
                 'installPackage(Modelica, "4.0.0", exactMatch=false);',
                 'setCommandLineOptions("--fmiFlags=s:cvode");',
                 'setCommandLineOptions("--fmuRuntimeDepends=all");',
@@ -78,22 +83,38 @@ def build_fmu_from_modelica(
     class_name: str,
     fmu_dir: Path | str,
     file_name_prefix: str | None = None,
+    source_files: Sequence[Path | str] | None = None,
     omc: str | Path | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> Path:
-    """Compile ``source_file`` with omc and sync the unpacked FMU into ``fmu_dir``.
+    """Compile Modelica source with omc and sync the unpacked FMU into ``fmu_dir``.
 
     Copies ``modelDescription.xml``, ``binaries/linux64``, ``resources``, and
     ``documentation/index.html`` into ``fmu_dir``, then strips model-exchange
-    metadata. ``fmu_dir`` is an output and is partially reset; ``source_file``
-    is read-only.
+    metadata. ``fmu_dir`` is an output and is partially reset; the source files
+    are read-only.
+
+    ``source_file`` is required for backward compatibility. When
+    ``source_files`` is given it takes precedence and each file is loaded via
+    its own ``loadFile("...");`` line in the generated .mos, deduplicated by
+    resolved path and kept in order. This supports package.mo trees where a
+    shared common package and the model's own package.mo must both be loaded.
 
     ``file_name_prefix`` defaults to a sanitised ``class_name``. Raises
     ``FileNotFoundError`` for a missing omc, archive, or documentation page and
     ``RuntimeError`` with omc's output when compilation fails. Returns
     ``fmu_dir``.
     """
-    source = Path(source_file).resolve()
+    if source_files is not None:
+        seen: set[Path] = set()
+        sources: list[Path] = []
+        for path in source_files:
+            resolved = Path(path).resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                sources.append(resolved)
+    else:
+        sources = [Path(source_file).resolve()]
     destination = Path(fmu_dir)
     prefix = file_name_prefix or _sanitise_file_name_prefix(class_name)
     omc_executable = find_executable(
@@ -104,7 +125,7 @@ def build_fmu_from_modelica(
 
     with tempfile.TemporaryDirectory(prefix=f"{prefix}_") as temp_dir:
         work_dir = Path(temp_dir)
-        mos_path = _write_mos(work_dir, source, class_name, prefix)
+        mos_path = _write_mos(work_dir, sources, class_name, prefix)
         run([omc_executable, str(mos_path)], cwd=work_dir, timeout=timeout)
 
         archive_path = work_dir / f"{prefix}.fmu"
