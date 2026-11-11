@@ -39,7 +39,7 @@ dependencies = [
   "experimental-pyssp-standard @ https://github.com/pyssporg/experimental_pyssp_standard/releases/download/v0.9.3.dev0/experimental_pyssp_standard-0.9.3.dev0-py3-none-any.whl",
   "pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/v0.3.0/pyssp_simulate-0.3.0-py3-none-any.whl",
   "pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/v0.2.0/pyssp_vv-0.2.0-py3-none-any.whl",
-  "sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl",
+  "sequence-extensions-flow @ https://github.com/pyssporg/sequence_extensions/releases/download/v3.0.0/sequence_extensions_flow-3.0.0-py3-none-any.whl",
   "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.5.0/pyssp_sysml2-0.5.0-py3-none-any.whl",
   "pyfmi-sysml2 @ https://github.com/pyssporg/pyfmi_sysml2/releases/download/v0.2.0/pyfmi_sysml2-0.2.0-py3-none-any.whl",
 ]

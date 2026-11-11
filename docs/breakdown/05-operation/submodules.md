@@ -22,7 +22,7 @@ submodules or local checkout.
 | `pyssp-simulate` | `pyssporg/pyssp_simulate` | `compare` |
 | `pyssp-sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
 | `pyssp-vv` | `pyssporg/pyssp_vv` | `compare` (measure, evidence), `nodes` (judge, evidence) |
-| `sequence-extensions-flow` | `jkCXf9X4/sequence_extensions` | `nodes` |
+| `sequence-extensions-flow` | `pyssporg/sequence_extensions` | `nodes` |
 
 The checkout is the experimental `pyssp_standard` fork
 (`pyssporg/experimental_pyssp_standard`); the import package stays

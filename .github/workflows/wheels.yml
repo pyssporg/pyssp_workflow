@@ -46,7 +46,7 @@ jobs:
               "Requires-Dist: pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/",
               "Requires-Dist: pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.5.0/",
               "Requires-Dist: pyfmi-sysml2 @ https://github.com/pyssporg/pyfmi_sysml2/releases/download/v0.2.0/",
-              "Requires-Dist: sequence-extensions-flow @ https://github.com/jkCXf9X4/sequence_extensions/releases/download/v3.0.0/",
+              "Requires-Dist: sequence-extensions-flow @ https://github.com/pyssporg/sequence_extensions/releases/download/v3.0.0/",
           )
           missing = [line for line in required if line not in text]
           assert not missing, f"{wheel}: missing {missing}"
