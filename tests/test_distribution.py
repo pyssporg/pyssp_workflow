@@ -26,7 +26,7 @@ def _groups(name: str) -> dict[str, list[str]]:
         line = raw.split("#", 1)[0].strip()
         if not line:
             continue
-        if "=" in line:
+        if "=" in line and not line.startswith('"'):
             key, _, value = line.partition("=")
             current = key.strip()
             groups[current] = re.findall(r'"([^"]*)"', value)
@@ -36,7 +36,7 @@ def _groups(name: str) -> dict[str, list[str]]:
 
 
 def _names(requirements: list[str]) -> set[str]:
-    return {requirement.split(" @ ", 1)[0] for requirement in requirements}
+    return {re.split(r"[<>=!~ ]", requirement)[0] for requirement in requirements}
 
 
 def test_only_the_dev_extra_is_shipped() -> None:
@@ -51,6 +51,6 @@ def test_sysml_bundle_is_pinned_once_in_base_dependencies() -> None:
     # would give the same pin two owners and let the three drift apart.
     requirements = _groups("project")["dependencies"]
 
-    assert {"pyssp-sysml2", "pyfmi-sysml2"} <= _names(requirements)
+    assert {"pyssp-sysml2", "pyfmi-interfaces"} <= _names(requirements)
     assert "pycps-sysml2" not in _names(requirements)
     assert len(requirements) == len(set(requirements))

@@ -97,8 +97,8 @@ pip install -e ".[dev]"                              # editable checkout plus te
 ```
 
 The base dependencies are `experimental-pyssp-standard`, `pyssp-simulate`,
-`pyssp-vv`, `sequence-extensions-flow`, `pyssp-sysml2`, and `pyfmi-sysml2`.
-The two SysML packages are install-only: this package never imports them;
+`pyssp-vv`, `sequence-extensions-flow`, `pyssp-sysml2`, and `pyfmi-interfaces`.
+The two SysML-related packages are install-only: this package never imports them;
 `authoring` only shells out to the `pyssp` CLI. `pycps-sysml2` arrives
 transitively with them.
 

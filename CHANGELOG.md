@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace the `pyfmi-sysml2` v0.3.0 pin with `pyfmi-interfaces>=0.5.1`
+  (2026-11-22).
 - Bump sibling pins: `pyssp-sysml2` v0.6.0 and `pyfmi-sysml2` v0.3.0.
 
 ## [0.3.0] - 2026-11-09

@@ -30,8 +30,9 @@ classifiers = [
 # `wheels.yml` workflow: the tag is `v<version>` and the asset is named
 # `<dist>-<version>-py3-none-any.whl`. A version whose tag has not been released
 # yet makes the wheel uninstallable, so release siblings before this package.
+# `pyfmi-interfaces` is a plain index dependency.
 #
-# pycps-sysml2 is deliberately absent: pyssp_sysml2 and pyfmi_sysml2 both
+# pycps-sysml2 is deliberately absent: pyssp_sysml2 and pyfmi_interfaces both
 # declare it as a dependency, so it arrives transitively and has exactly one
 # owner per pin.
 dependencies = [
@@ -40,7 +41,7 @@ dependencies = [
   "pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/v0.2.0/pyssp_vv-0.2.0-py3-none-any.whl",
   "sequence-extensions-flow @ https://github.com/pyssporg/sequence_extensions/releases/download/v3.1.0/sequence_extensions_flow-3.1.0-py3-none-any.whl",
   "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml2/releases/download/v0.6.0/pyssp_sysml2-0.6.0-py3-none-any.whl",
-  "pyfmi-sysml2 @ https://github.com/pyssporg/pyfmi_sysml2/releases/download/v0.3.0/pyfmi_sysml2-0.3.0-py3-none-any.whl",
+  "pyfmi-interfaces>=0.5.1",
 ]
 
 [project.optional-dependencies]

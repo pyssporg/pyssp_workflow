@@ -43,8 +43,8 @@ pip install -e ".[dev]"
   sibling release assets: `experimental-pyssp-standard` `v0.9.4.dev0`,
   `pyssp-simulate` `v0.3.0`, `pyssp-vv` `v0.2.0`,
   `sequence-extensions-flow` `v3.0.0`, `pyssp-sysml2` `v0.6.0`, and
-  `pyfmi-sysml2` `v0.3.0`.
-- `pyssp-sysml2` and `pyfmi-sysml2` are install-only, never imports;
+  `pyfmi-interfaces>=0.5.1`.
+- `pyssp-sysml2` and `pyfmi-interfaces` are install-only, never imports;
   `pycps-sysml2` `v0.3.0` arrives transitively with one owner per pin.
 - Sibling tags must exist before this package is released; an unreleased tag
   makes the wheel uninstallable (see the `pyproject.toml` dependency comment).
