@@ -78,7 +78,7 @@ retry. It does not implement the capabilities it composes.
 
 ## Environment
 
-- Python >= 3.10; the node layer needs Python 3.11+.
+- Python >= 3.11; the node layer needs the same interpreter.
 - Development: create `.venv`, then `pip install -r requirements-dev.txt` and
   `pip install -e ".[dev]"`; the same file covers the node layer.
 - Tests: `python -m pytest` (pyproject sets `pythonpath`); lint with

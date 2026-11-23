@@ -13,7 +13,7 @@ Two surfaces reject a capability implemented in this repository.
 
 ## CI step
 
-- Step name: "No capability creep" in `.github/workflows/ci.yml`.
+- Step name: "No capability creep" in `.github/workflows/tests.yml`.
 - It scans every `src/**/*.py` file.
 - Forbidden strings: `passed(`, `def compare(`, `def judge(`.
 - Any hit fails the job.

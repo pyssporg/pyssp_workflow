@@ -82,10 +82,9 @@ result = bind(build, scenario_ssv, mode="inline", mapping="flatten", ssm=scenari
 ## Install
 
 ```bash
-git clone --recurse-submodules git@github.com:pyssporg/pyssp_workflow.git
+git clone https://github.com/pyssporg/pyssp_workflow.git
 cd pyssp_workflow
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt   # one buffer: flow layer (Python 3.11+) and SysML tooling
 pip install -e ".[dev]"
 ```
 
@@ -108,6 +107,18 @@ Pre-alpha (`0.3.0`). The module surfaces, dependency rules, node contract, and
 catalog are established. `authoring`, `binding`, `compare`, `analysis`, and `fixture`
 are implemented; the optional node layer wraps SysML derivation and evidence
 writing.
+
+## Development
+
+```bash
+python -m pytest                 # full suite
+python -m pytest -m "not slow"   # the CI selection
+ruff check src tests             # line length 100, target py311
+```
+
+`pyproject.toml` sets `pythonpath = ["src", "tests"]`, so the suite runs against
+the checkout. `tests/test_layering.py` enforces the module boundaries and CI
+rejects capability code in `src/`.
 
 ## Documentation
 

@@ -17,7 +17,7 @@ submodules or local checkout.
 | Distribution | Upstream | Used by |
 | --- | --- | --- |
 | `experimental-pyssp-standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
-| `pycps-sysml2` | `pyssporg/pycps_sysml2` | base dependency, not imported |
+| `pycps-sysml2` | `pyssporg/pycps_sysml2` | transitive, not imported |
 | `pyfmi-interfaces` | `pyssporg/pyfmi_interfaces` | base dependency, not imported |
 | `pyssp-simulate` | `pyssporg/pyssp_simulate` | `compare` |
 | `pyssp-sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
