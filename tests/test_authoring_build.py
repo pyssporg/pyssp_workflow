@@ -18,7 +18,7 @@ from pyssp_workflow.authoring import (
 )
 from pyssp_workflow.authoring import build as authoring_build
 from pyssp_workflow.authoring import derive as authoring_derive
-from pyssp_workflow.authoring.fmu import _write_mos
+from pyssp_workflow.authoring.fmu import _sync_fmu_dir, _write_mos
 from pyssp_workflow.binding import bind
 from pyssp_workflow.fixture import BuiltFixture
 
@@ -803,6 +803,46 @@ def test_build_fmu_from_modelica_requires_omc(
             class_name="M",
             fmu_dir=tmp_path / "fmu",
         )
+
+
+def test_sync_fmu_dir_stages_only_the_runtime_layout(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    _write_model_description(source / "modelDescription.xml", "ModelExchange")
+    (source / "binaries" / "linux64").mkdir(parents=True)
+    (source / "binaries" / "linux64" / "M.so").write_bytes(b"\x7fELF")
+    (source / "resources" / "pkg").mkdir(parents=True)
+    (source / "resources" / "pkg" / "data.bin").write_bytes(b"payload")
+    (source / "sources").mkdir()
+    (source / "sources" / "M.c").write_text("/* source */", encoding="utf-8")
+
+    archive = tmp_path / "M.fmu"
+    with ZipFile(archive, "w") as bundle:
+        for path in sorted(source.rglob("*")):
+            if path.is_file():
+                bundle.write(path, path.relative_to(source).as_posix())
+
+    index = tmp_path / "index.html"
+    index.write_text("<html>M</html>", encoding="utf-8")
+    fmu_dir = tmp_path / "fmu"
+
+    _sync_fmu_dir(archive, index, fmu_dir)
+
+    assert sorted(
+        path.relative_to(fmu_dir).as_posix()
+        for path in fmu_dir.rglob("*")
+        if path.is_file()
+    ) == [
+        "binaries/linux64/M.so",
+        "documentation/index.html",
+        "modelDescription.xml",
+        "resources/pkg/data.bin",
+    ]
+    assert (fmu_dir / "documentation" / "index.html").read_text(
+        encoding="utf-8"
+    ) == "<html>M</html>"
+    assert "ModelExchange" not in (
+        fmu_dir / "modelDescription.xml"
+    ).read_text(encoding="utf-8")
 
 
 @pytest.mark.skipif(OMC is None, reason="omc is not installed")

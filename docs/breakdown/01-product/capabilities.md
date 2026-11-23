@@ -18,7 +18,9 @@ importable function and a node-ready work unit.
 - `authoring` turns the SysML architecture into an analysis and an exported
   model SSP. Its `pyssp` invocations request `pycps_sysml2`'s packaged core
   definitions by default (`core_definitions=True`) and accept extra definition
-  roots through `includes`, passed as repeated `--architecture`.
+  roots through `includes`, passed as repeated `--architecture`. The exported
+  archive and every staged FMU are read and written through `pyssp_standard`;
+  `authoring` owns the order of work, not archive mechanics.
 - `binding` writes the chosen scenario binding into the built SSP.
 - `pyssp_simulate` then runs the built SSP.
 - `compare` measures one candidate result CSV against a reference.

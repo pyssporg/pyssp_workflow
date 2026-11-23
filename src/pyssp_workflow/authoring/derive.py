@@ -42,6 +42,29 @@ def _run_pyssp(
     return run([executable, *arguments], timeout=timeout)
 
 
+def _generate_arguments(
+    kind: str,
+    architecture_path: Path | str,
+    composition: str,
+    *,
+    output_flag: str,
+    output_path: Path | str,
+    includes: Sequence[Path | str],
+) -> list[str]:
+    """The shared ``pyssp generate`` prefix for every derivation."""
+    return [
+        "generate",
+        kind,
+        "--architecture",
+        str(Path(architecture_path)),
+        *_include_arguments(includes),
+        "--composition",
+        composition,
+        output_flag,
+        str(Path(output_path)),
+    ]
+
+
 def derive_ssd_from_sysml(
     architecture_path: Path | str,
     output_path: Path | str,
@@ -70,19 +93,15 @@ def derive_ssd_from_sysml(
     root, so the CLI loads them as definition roots.
     """
     output = Path(output_path)
-    arguments = [
-        "generate",
+    arguments = _generate_arguments(
         "ssd",
-        "--architecture",
-        str(Path(architecture_path)),
-        *_include_arguments(includes),
-        "--composition",
+        architecture_path,
         composition,
-        "--output",
-        str(output),
-        "--parameter-set-prefix",
-        parameter_set_prefix,
-    ]
+        output_flag="--output",
+        output_path=output,
+        includes=includes,
+    )
+    arguments.extend(["--parameter-set-prefix", parameter_set_prefix])
     if not type_check:
         arguments.append("--skip_type_check")
     if core_definitions:
@@ -125,19 +144,15 @@ def derive_ssp_from_sysml(
     root, so the CLI loads them as definition roots.
     """
     output = Path(output_path)
-    arguments = [
-        "generate",
+    arguments = _generate_arguments(
         "ssp",
-        "--architecture",
-        str(Path(architecture_path)),
-        *_include_arguments(includes),
-        "--composition",
+        architecture_path,
         composition,
-        "--output",
-        str(output),
-        "--parameter-set-prefix",
-        parameter_set_prefix,
-    ]
+        output_flag="--output",
+        output_path=output,
+        includes=includes,
+    )
+    arguments.extend(["--parameter-set-prefix", parameter_set_prefix])
     if fmu_root is not None:
         arguments.extend(["--fmu-root", str(Path(fmu_root))])
     if not validate_fmus:
@@ -185,21 +200,15 @@ def derive_analysis_from_sysml(
     root, so the CLI loads them as definition roots.
     """
     output = Path(output_dir)
-    arguments = [
-        "generate",
+    arguments = _generate_arguments(
         "analysis",
-        "--architecture",
-        str(Path(architecture_path)),
-        *_include_arguments(includes),
-        "--composition",
+        architecture_path,
         composition,
-        "--output-dir",
-        str(output),
-        "--model",
-        model_name,
-        "--target-ssd",
-        target_ssd,
-    ]
+        output_flag="--output-dir",
+        output_path=output,
+        includes=includes,
+    )
+    arguments.extend(["--model", model_name, "--target-ssd", target_ssd])
     if core_definitions:
         arguments.append("--core-definitions")
     arguments.extend(_selection_arguments(selections))

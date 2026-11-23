@@ -7,7 +7,8 @@ import shutil
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from zipfile import ZipFile
+
+from pyssp_standard import FMU, unpack_archive
 
 from pyssp_workflow.authoring._fmu import strip_fmu
 from pyssp_workflow.authoring._process import find_executable, run
@@ -40,35 +41,50 @@ def _write_mos(
     return mos_path
 
 
-def _copy_archive_file(archive: ZipFile, member_name: str, target_path: Path) -> None:
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    with target_path.open("wb") as handle:
-        handle.write(archive.read(member_name))
+def _files_below(root: Path) -> list[Path]:
+    if not root.is_dir():
+        return []
+    return sorted(path for path in root.rglob("*") if path.is_file())
 
 
 def _sync_fmu_dir(archive_path: Path, index_html_path: Path, fmu_dir: Path) -> None:
+    """Stage the omc FMU tree at ``fmu_dir`` through the ``pyssp_standard`` facade.
+
+    The layout is partially reset, as before: ``binaries/linux64``,
+    ``documentation``, and ``sources`` are replaced, while any existing
+    resources stay and same-named entries are overwritten. The source archive
+    is unpacked into a temporary tree, never rewritten.
+    """
     shutil.rmtree(fmu_dir / "binaries" / "linux64", ignore_errors=True)
     shutil.rmtree(fmu_dir / "documentation", ignore_errors=True)
     shutil.rmtree(fmu_dir / "sources", ignore_errors=True)
-
     fmu_dir.mkdir(parents=True, exist_ok=True)
-    (fmu_dir / "binaries" / "linux64").mkdir(parents=True, exist_ok=True)
-    (fmu_dir / "documentation").mkdir(parents=True, exist_ok=True)
 
-    shutil.copy2(index_html_path, fmu_dir / "documentation" / "index.html")
-
-    with ZipFile(archive_path) as archive:
-        if "modelDescription.xml" not in archive.namelist():
+    with tempfile.TemporaryDirectory(prefix="fmu_source_") as temp_dir:
+        extracted = unpack_archive(archive_path, Path(temp_dir) / "fmu")
+        description = extracted / "modelDescription.xml"
+        if not description.is_file():
             raise FileNotFoundError(f"Missing modelDescription.xml in {archive_path}")
-        _copy_archive_file(
-            archive, "modelDescription.xml", fmu_dir / "modelDescription.xml"
-        )
 
-        for member in archive.namelist():
-            if member.startswith("binaries/linux64/") and not member.endswith("/"):
-                _copy_archive_file(archive, member, fmu_dir / member)
-            elif member.startswith("resources/") and not member.endswith("/"):
-                _copy_archive_file(archive, member, fmu_dir / member)
+        binary_root = extracted / "binaries" / "linux64"
+        resource_root = extracted / "resources"
+
+        with FMU(fmu_dir, mode="a") as fmu:
+            fmu.add_model_description(description)
+            for binary in _files_below(binary_root):
+                # The runtime keeps a nested path below binaries/linux64 intact.
+                fmu.runtime.add_file(
+                    binary,
+                    target_name=(
+                        f"binaries/linux64/{binary.relative_to(binary_root).as_posix()}"
+                    ),
+                )
+            for resource in _files_below(resource_root):
+                fmu.add_resource(
+                    resource,
+                    target_name=resource.relative_to(resource_root).as_posix(),
+                )
+            fmu.add_documentation(index_html_path, target_name="index.html")
 
     strip_fmu(fmu_dir)
 

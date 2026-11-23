@@ -37,12 +37,17 @@ public API type may cross. Internal modules, private objects, and adapter-only
 structures never cross. This package is a consumer: it imports producer public
 surfaces and does not reach into producer internals.
 
+Packaging is one of those surfaces. `authoring` unpacks an FMU through
+`unpack_archive`, stages its runtime layout through the `FMU` facade, and
+unpacks a built SSP through `unpack_archive`; it does not rebuild zip archives
+itself. SSP assembly and archive member ordering stay in `pyssp_standard`.
+
 ## Modules and rules
 
 | Module | Purpose | May import | Must not |
 | --- | --- | --- | --- |
 | `nodes` | scheduling policy over domain functions | `sequence_extensions`, every internal module, all of `pyssp_vv` | implement measurement or judgment |
-| `authoring` | SysML derivation, analysis and fixture builds, Modelica FMU build | stdlib, subprocess, `pyssp_standard`, `fixture`, `analysis` | `pyssp_vv`, `pyssp_sysml2` |
+| `authoring` | SysML derivation, analysis and fixture builds, Modelica FMU build staged through `pyssp_standard` | stdlib, subprocess, `pyssp_standard`, `fixture`, `analysis` | `pyssp_vv`, `pyssp_sysml2` |
 | `binding` | `bind` writes one scenario binding, chosen by `mode`/`mapping`/`components`, into a built SSP and returns a `BindingResult` | `pyssp_standard`, `fixture` | `pyssp_vv`, `analysis`, reimplement SSP assembly |
 | `compare` | compose one result-CSV comparison | `pyssp_simulate`, `pyssp_vv.measure`, `pyssp_vv.evidence` | `pyssp_vv.judge` |
 | `fixture` | `BuiltFixture` record and artifact path helpers | `analysis` | perform a build or read a scenario |

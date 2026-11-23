@@ -14,8 +14,8 @@ The package exposes six module surfaces. Each returns plain records or paths.
 ## Modules
 
 - **`authoring`**: SysML derivation through the `pyssp` CLI, analysis, model,
-  and fixture builds, legacy checked-in SSP builds, Modelica FMU build, build
-  reporting.
+  and fixture builds, legacy checked-in SSP builds, Modelica FMU build staged
+  through the `pyssp_standard` `FMU` facade, build reporting.
 - **`binding`**: `bind`, which dispatches one scenario binding into a built SSP
   through `SSP.bind_parameters` and returns a `BindingResult`.
 - **`compare`**: `ResultRef`, `ComparisonRequest`, `ComparisonRecord`,
