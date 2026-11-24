@@ -10,7 +10,7 @@ This package **composes capabilities and owns none of them**:
 | SSP assembly | `pyssp_standard` |
 | Simulation execution | `pyssp_simulate` |
 | Measurement, judgment, evidence | `pyssp_vv` |
-| SysML derivation | `pyssp_sysml2`, via its CLI |
+| SysML derivation | `pyssp_sysml`, via its CLI |
 | Scheduling, retries, timeouts | `sequence_extensions` |
 | Composition, paths, order of work | **this package** |
 
@@ -29,7 +29,7 @@ An analysis descriptor names the scenario SSV and SSM and the experiment window.
 SSP; `build_fixture` returns one `BuiltFixture` per analysis, with the artifact
 paths under `artifacts/analyses/<model>/<analysis>` and
 `artifacts/models/<model>/<analysis>/<build_name>`. Its derivations default to
-`core_definitions=True`, which adds `pycps_sysml2`'s packaged markers as one
+`core_definitions=True`, which adds `pycps_sysml`'s packaged markers as one
 include (`--core-definitions`); pass `core_definitions=False` for an
 architecture that declares its own. Extra definition roots go in `includes=`,
 one more `--architecture` each after the model root. `binding` writes the chosen
@@ -96,9 +96,9 @@ pip install -e ".[dev]"                              # editable checkout plus te
 ```
 
 The base dependencies are `experimental-pyssp-standard`, `pyssp-simulate`,
-`pyssp-vv`, `sequence-extensions-flow`, `pyssp-sysml2`, and `pyfmi-interfaces`.
+`pyssp-vv`, `sequence-extensions-flow`, `pyssp-sysml`, and `pyfmi-interfaces`.
 The two SysML-related packages are install-only: this package never imports them;
-`authoring` only shells out to the `pyssp` CLI. `pycps-sysml2` arrives
+`authoring` only shells out to the `pyssp` CLI. `pycps-sysml` arrives
 transitively with them.
 
 ## Status

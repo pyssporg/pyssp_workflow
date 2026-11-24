@@ -41,10 +41,10 @@ pip install -e ".[dev]"
 - `dependencies`: the whole runtime set, as PEP 508 direct references to
   sibling release assets: `experimental-pyssp-standard` `v0.9.4.dev0`,
   `pyssp-simulate` `v0.3.0`, `pyssp-vv` `v0.2.0`,
-  `sequence-extensions-flow` `v3.1.0`, `pyssp-sysml2` `v0.6.0`, and
+  `sequence-extensions-flow` `v3.1.0`, `pyssp-sysml` `v0.6.0`, and
   `pyfmi-interfaces>=0.5.1`.
-- `pyssp-sysml2` and `pyfmi-interfaces` are install-only, never imports;
-  `pycps-sysml2` arrives transitively with one owner per pin.
+- `pyssp-sysml` and `pyfmi-interfaces` are install-only, never imports;
+  `pycps-sysml` arrives transitively with one owner per pin.
 - Sibling tags must exist before this package is released; an unreleased tag
   makes the wheel uninstallable (see the `pyproject.toml` dependency comment).
 - During development the same capabilities are installed from their

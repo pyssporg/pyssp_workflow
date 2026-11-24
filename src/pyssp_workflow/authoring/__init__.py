@@ -1,9 +1,9 @@
 """Authoring: SysML derivation, fixture build steps, and Modelica FMU build.
 
 This module owns the command and build composition only. It invokes
-``pyssp_sysml2`` and ``omc`` as subprocesses and exchanges SysML, SSP, SSV,
+``pyssp_sysml`` and ``omc`` as subprocesses and exchanges SysML, SSP, SSV,
 SSM, and FMU artifacts with ``pyssp_standard``. It never imports
-``pyssp_sysml2`` or ``pyssp_vv``.
+``pyssp_sysml`` or ``pyssp_vv``.
 
 The build steps reset their output directory and leave their inputs untouched:
 ``architecture_dir`` and the legacy ``source_dir`` are read-only.

@@ -16,7 +16,7 @@ importable function and a node-ready work unit.
 ## Flow
 
 - `authoring` turns the SysML architecture into an analysis and an exported
-  model SSP. Its `pyssp` invocations request `pycps_sysml2`'s packaged core
+  model SSP. Its `pyssp` invocations request `pycps_sysml`'s packaged core
   definitions by default (`core_definitions=True`) and accept extra definition
   roots through `includes`, passed as repeated `--architecture`. The exported
   archive and every staged FMU are read and written through `pyssp_standard`;

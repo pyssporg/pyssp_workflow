@@ -31,7 +31,7 @@ The package exposes six module surfaces. Each returns plain records or paths.
 `derive_analysis_from_sysml`, `build_analysis`, `build_model`, and
 `build_fixture` take `core_definitions=True`. The default appends
 `--core-definitions` to the `pyssp` arguments because this ecosystem's
-architectures rely on `pycps_sysml2`'s packaged core definitions. A caller whose
+architectures rely on `pycps_sysml`'s packaged core definitions. A caller whose
 architecture vendors its own marker definitions passes `False` to omit the flag.
 
 They also take `includes=()`, one extra `--architecture` root per element,

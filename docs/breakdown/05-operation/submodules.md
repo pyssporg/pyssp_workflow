@@ -17,10 +17,10 @@ submodules or local checkout.
 | Distribution | Upstream | Used by |
 | --- | --- | --- |
 | `experimental-pyssp-standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
-| `pycps-sysml2` | `pyssporg/pycps_sysml2` | transitive, not imported |
+| `pycps-sysml` | `pyssporg/pycps_sysml` | transitive, not imported |
 | `pyfmi-interfaces` | `pyssporg/pyfmi_interfaces` | base dependency, not imported |
 | `pyssp-simulate` | `pyssporg/pyssp_simulate` | `compare` |
-| `pyssp-sysml2` | `pyssporg/pyssp_sysml2` | `authoring` (CLI only) |
+| `pyssp-sysml` | `pyssporg/pyssp_sysml` | `authoring` (CLI only) |
 | `pyssp-vv` | `pyssporg/pyssp_vv` | `compare` (measure, evidence), `nodes` (judge, evidence) |
 | `sequence-extensions-flow` | `pyssporg/sequence_extensions` | `nodes` |
 
@@ -41,7 +41,7 @@ The editable install brings the whole capability set from the release wheels.
 `requirements-dev.txt` (a single `-e ".[dev]"` line) pulls the same set from
 the dependencies declared in `pyproject.toml`, including `sequence_extensions`
 (the node/flow engine, Python 3.11+) and the SysML tool plus the dialect and
-FMI artifact libraries (`pycps_sysml2`, `pyfmi_interfaces`), CLI only.
+FMI artifact libraries (`pycps_sysml`, `pyfmi_interfaces`), CLI only.
 
 For **cross-repo development** of several capability trees at once, do not add
 vendored submodules here. Check all of the repositories out side by side (for

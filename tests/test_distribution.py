@@ -47,10 +47,10 @@ def test_only_the_dev_extra_is_shipped() -> None:
 
 
 def test_sysml_bundle_is_pinned_once_in_base_dependencies() -> None:
-    # pycps-sysml2 arrives transitively from both siblings. Listing it here
+    # pycps-sysml arrives transitively from both siblings. Listing it here
     # would give the same pin two owners and let the three drift apart.
     requirements = _groups("project")["dependencies"]
 
-    assert {"pyssp-sysml2", "pyfmi-interfaces"} <= _names(requirements)
-    assert "pycps-sysml2" not in _names(requirements)
+    assert {"pyssp-sysml", "pyfmi-interfaces"} <= _names(requirements)
+    assert "pycps-sysml" not in _names(requirements)
     assert len(requirements) == len(set(requirements))

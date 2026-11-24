@@ -16,7 +16,7 @@ status: current
 - **SSP assembly**: `pyssp_standard`.
 - **Simulation execution**: `pyssp_simulate`.
 - **Measurement, judgment, evidence**: `pyssp_vv`.
-- **SysML derivation**: `pyssp_sysml2`, via its CLI.
+- **SysML derivation**: `pyssp_sysml`, via its CLI.
 - **Scheduling, retries, timeouts**: `sequence_extensions`.
 - **Composition, paths, order of work**: this package.
 

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace the `pyfmi-sysml2` v0.3.0 pin with `pyfmi-interfaces>=0.5.1`
   (2026-11-22).
-- Bump sibling pins: `pyssp-sysml2` v0.6.0 and `pyfmi-sysml2` v0.3.0.
+- Bump sibling pins: `pyssp-sysml` v0.6.0 and `pyfmi-sysml2` v0.3.0.
 
 ## [0.3.0] - 2026-11-09
 
@@ -29,6 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove the vendored `3rd_party` submodules; capabilities now install from
   their release assets.
 - Bump sibling pins: `experimental-pyssp-standard` v0.9.3.dev0,
-  `pyssp-simulate` v0.3.0, `pyssp-vv` v0.2.0, `pyssp-sysml2` v0.5.0, and
+  `pyssp-simulate` v0.3.0, `pyssp-vv` v0.2.0, `pyssp-sysml` v0.5.0, and
   `pyfmi-sysml2` v0.2.0.
 

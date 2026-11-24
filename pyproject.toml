@@ -32,7 +32,7 @@ classifiers = [
 # yet makes the wheel uninstallable, so release siblings before this package.
 # `pyfmi-interfaces` is a plain index dependency.
 #
-# pycps-sysml2 is deliberately absent: pyssp_sysml2 and pyfmi_interfaces both
+# pycps-sysml is deliberately absent: pyssp_sysml and pyfmi_interfaces both
 # declare it as a dependency, so it arrives transitively and has exactly one
 # owner per pin.
 dependencies = [

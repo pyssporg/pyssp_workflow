@@ -36,7 +36,7 @@ def _run_pyssp(
     executable = find_executable(
         "pyssp",
         pyssp,
-        hint="install pyssp_sysml2 or pass pyssp=",
+        hint="install pyssp_sysml or pass pyssp=",
         env_var="PYSSP",
     )
     return run([executable, *arguments], timeout=timeout)
@@ -86,7 +86,7 @@ def derive_ssd_from_sysml(
 
     ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
     defaults to on because this ecosystem's architectures rely on
-    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    ``pycps_sysml``'s packaged core definitions; a caller that vendors its own
     marker definitions passes ``False``.
 
     ``includes`` passes one extra ``--architecture`` per root, after the model
@@ -137,7 +137,7 @@ def derive_ssp_from_sysml(
 
     ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
     defaults to on because this ecosystem's architectures rely on
-    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    ``pycps_sysml``'s packaged core definitions; a caller that vendors its own
     marker definitions passes ``False``.
 
     ``includes`` passes one extra ``--architecture`` per root, after the model
@@ -193,7 +193,7 @@ def derive_analysis_from_sysml(
 
     ``core_definitions`` passes ``--core-definitions`` to the ``pyssp`` CLI. It
     defaults to on because this ecosystem's architectures rely on
-    ``pycps_sysml2``'s packaged core definitions; a caller that vendors its own
+    ``pycps_sysml``'s packaged core definitions; a caller that vendors its own
     marker definitions passes ``False``.
 
     ``includes`` passes one extra ``--architecture`` per root, after the model

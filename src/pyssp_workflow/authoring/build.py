@@ -37,7 +37,7 @@ def build_analysis(
     resolves SysML variation points in ``composition`` at build time only; the
     counterpart selection must reach :func:`build_model` so the SSV/SSM and the
     SSD agree. ``core_definitions`` reaches the ``pyssp`` CLI; it defaults to on
-    because this ecosystem's architectures rely on ``pycps_sysml2``'s packaged
+    because this ecosystem's architectures rely on ``pycps_sysml``'s packaged
     core definitions. ``includes`` reaches the CLI as repeated
     ``--architecture`` roots after the model root.
     """
@@ -81,7 +81,7 @@ def build_model(
     reach :func:`build_analysis` so the SSD and the SSV/SSM agree. The archive
     provenance names ``configuration`` when one authored the selection.
     ``core_definitions`` reaches the ``pyssp`` CLI; it defaults to on because
-    this ecosystem's architectures rely on ``pycps_sysml2``'s packaged core
+    this ecosystem's architectures rely on ``pycps_sysml``'s packaged core
     definitions. ``includes`` reaches the CLI as repeated ``--architecture``
     roots after the model root.
     """
@@ -218,7 +218,7 @@ def build_fixture(
     unknown analysis name raises ``ValueError`` in either map. A missing map
     means that build runs on the analysis's authored selection. Selection is
     build-time only. ``core_definitions`` reaches both derivations; it defaults
-    to on because this ecosystem's architectures rely on ``pycps_sysml2``'s
+    to on because this ecosystem's architectures rely on ``pycps_sysml``'s
     packaged core definitions. ``includes`` reaches both derivations as
     repeated ``--architecture`` roots after the model root.
     """
