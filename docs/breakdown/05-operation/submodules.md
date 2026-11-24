@@ -16,7 +16,7 @@ submodules or local checkout.
 
 | Distribution | Upstream | Used by |
 | --- | --- | --- |
-| `experimental-pyssp-standard` | `pyssporg/experimental_pyssp_standard` | `authoring`, `analysis`, `binding` |
+| `experimental-pyssp-standard` | `pyssporg/pyssp_standard_exp` | `authoring`, `analysis`, `binding` |
 | `pycps-sysml` | `pyssporg/pycps_sysml` | transitive, not imported |
 | `pyfmi-interfaces` | `pyssporg/pyfmi_interfaces` | base dependency, not imported |
 | `pyssp-simulate` | `pyssporg/pyssp_simulate` | `compare` |
@@ -25,7 +25,7 @@ submodules or local checkout.
 | `sequence-extensions-flow` | `pyssporg/sequence_extensions` | `nodes` |
 
 The checkout is the experimental `pyssp_standard` fork
-(`pyssporg/experimental_pyssp_standard`); the import package stays
+(`pyssporg/pyssp_standard_exp`); the import package stays
 `pyssp_standard`. Its release asset is built from its `alpha` branch.
 
 ## Development layout

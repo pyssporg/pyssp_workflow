@@ -41,7 +41,7 @@ jobs:
           # tag that was never released fails the install rather than resolving
           # an older build.
           required = (
-              "Requires-Dist: experimental-pyssp-standard @ https://github.com/pyssporg/experimental_pyssp_standard/releases/download/",
+              "Requires-Dist: experimental-pyssp-standard @ https://github.com/pyssporg/pyssp_standard_exp/releases/download/",
               "Requires-Dist: pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/",
               "Requires-Dist: pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/",
               "Requires-Dist: pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml/releases/download/v0.6.0/",
