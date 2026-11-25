@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyssp-workflow"
-version = "0.3.0"
+version = "0.4.0"
 description = "Composable build, run, compare, and verify workflows for SSP models."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,18 +30,17 @@ classifiers = [
 # `wheels.yml` workflow: the tag is `v<version>` and the asset is named
 # `<dist>-<version>-py3-none-any.whl`. A version whose tag has not been released
 # yet makes the wheel uninstallable, so release siblings before this package.
-# `pyfmi-interfaces` is a plain index dependency.
 #
 # pycps-sysml is deliberately absent: pyssp_sysml and pyfmi_interfaces both
 # declare it as a dependency, so it arrives transitively and has exactly one
 # owner per pin.
 dependencies = [
   "experimental-pyssp-standard @ https://github.com/pyssporg/pyssp_standard_exp/releases/download/v0.9.4.dev0/experimental_pyssp_standard-0.9.4.dev0-py3-none-any.whl",
-  "pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/v0.3.0/pyssp_simulate-0.3.0-py3-none-any.whl",
-  "pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/v0.2.0/pyssp_vv-0.2.0-py3-none-any.whl",
-  "sequence-extensions-flow @ https://github.com/pyssporg/sequence_extensions/releases/download/v3.1.0/sequence_extensions_flow-3.1.0-py3-none-any.whl",
-  "pyssp-sysml2 @ https://github.com/pyssporg/pyssp_sysml/releases/download/v0.6.0/pyssp_sysml2-0.6.0-py3-none-any.whl",
-  "pyfmi-interfaces>=0.5.1",
+  "pyssp-simulate @ https://github.com/pyssporg/pyssp_simulate/releases/download/v0.4.0/pyssp_simulate-0.4.0-py3-none-any.whl",
+  "pyssp-vv @ https://github.com/pyssporg/pyssp_vv/releases/download/v0.3.0/pyssp_vv-0.3.0-py3-none-any.whl",
+  "sequence-extensions-flow @ https://github.com/pyssporg/sequence_extensions/releases/download/v3.2.0/sequence_extensions_flow-3.2.0-py3-none-any.whl",
+  "pyssp-sysml @ https://github.com/pyssporg/pyssp_sysml/releases/download/v0.7.0/pyssp_sysml-0.7.0-py3-none-any.whl",
+  "pyfmi-interfaces @ https://github.com/pyssporg/pyfmi_interfaces/releases/download/v0.5.3/pyfmi_interfaces-0.5.3-py3-none-any.whl",
 ]
 
 [project.optional-dependencies]
